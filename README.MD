@@ -20,6 +20,7 @@ The export tool will export all of the objects it gathers from running the confi
 
 Here is an example *.metadata.xml file.
 
+!(images/export_xml2.jpg)
 
 <b>Notes:</b>
 
@@ -29,3 +30,5 @@ Here is an example *.metadata.xml file.
 4. If the export tool encounters an object that appears to be a custom type, it will export a .typedef.xml file that contains definitions for all its custom attributes.
 
 Here is an example of a *.typedef.xml file.
+
+!(images/type_xml.jpg)

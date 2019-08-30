@@ -20,7 +20,7 @@ The export tool will export all of the objects it gathers from running the confi
 
 Here is an example *.metadata.xml file.
 
-!(https://github.com/msroth/QuikDIE/images/export_xml2.jpg)
+!(https://github.com/msroth/QuikDIE/tree/master/images/export_xml2.jpg)
 
 <b>Notes:</b>
 
@@ -31,4 +31,4 @@ Here is an example *.metadata.xml file.
 
 Here is an example of a *.typedef.xml file.
 
-!(https://github.com/msroth/QuikDIE/images/type_xml.jpg)
+!(https://github.com/msroth/QuikDIE/tree/master/images/type_xml.jpg)

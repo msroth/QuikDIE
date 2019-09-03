@@ -103,7 +103,7 @@ package com.dm_misc.QuikDIE;
  *                      server
  *                    - added "dmi" extension to object types ignored  
  *                    - implemented DCTMBasics JAR        
- *   1.6 - 2019-09-XX - added "dmr" extension to object types ignored
+ *   1.6 - 2019-09-03 - added "dmr" extension to object types ignored
  *                    - added renditions to exports (thanks Sindhu Pillai)
  *                    - general clean up             
  * ============================================================================        

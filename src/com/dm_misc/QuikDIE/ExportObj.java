@@ -2,7 +2,7 @@ package com.dm_misc.QuikDIE;
 /* ============================================================================
  * QuikDIE - Quik Documentum Import/Export
  * Export Content Module - ExportObj
- * (c) 2013-2015 MS Roth
+ * (c) 2013-2019 MS Roth
  * 
  * ============================================================================
  */
@@ -12,6 +12,7 @@ import java.io.PrintWriter;
 import java.util.ArrayList;
 
 import com.dm_misc.dctm.DCTMBasics;
+
 import com.documentum.fc.client.IDfCollection;
 import com.documentum.fc.client.IDfSession;
 import com.documentum.fc.client.IDfSysObject;
@@ -35,6 +36,8 @@ public class ExportObj {
     private boolean m_isVirtualDoc = false;
     private String m_DOSExt = "";
     private ArrayList<ExportObj> m_VDChildren = new ArrayList<ExportObj>();
+    private ArrayList<String> m_Renditions = new ArrayList<String>();
+    private boolean m_hasRenditions = false;
     private boolean m_isParked = false;
 
     /*
@@ -95,79 +98,109 @@ public class ExportObj {
                 m_isVirtualDoc = true;
                 gatherVDChildren();
             }
+            
+            // v1.6 
+            // gather rendition formats to export
+            IDfCollection renditionCol = m_sObj.getRenditions("rendition, full_format, full_content_size");
+            if (renditionCol != null) {
+            	while (renditionCol.next()) {
+            		if (renditionCol.getInt("rendition") > 0 && renditionCol.getInt("full_content_size") > 0) {
+            			m_Renditions.add(renditionCol.getString("full_format"));
+                		m_hasRenditions = true;
+            		}
+            	}
+            	renditionCol.close();
+            }
 
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
+    
     /*
      * This method orchestrates the export of the object's content (if it has 
-     * any), its metadata, and if it is a virtual document, that of its children. 
+     * any), its metadata, and if it is a virtual document, that of its children
+     * and renditions. 
      */
-    public boolean exportContent()  {
-    	boolean rv = true;
+    public int exportContent()  {
+    	int count = 1;
     	
     	try {
-	        // folder
+	        // export folder metadata
 	        if (DCTMBasics.isFolder(m_sObj)) {
 	            System.out.println("Exporting folder: " + Utils.getObjectPath(m_sObj, m_session) + "/" + m_sObj.getObjectName());
 	            Utils.writeLog("Exporting folder: " + Utils.getObjectPath(m_sObj, m_session) + "/" + m_sObj.getObjectName());
 	            exportDocumentMetadata();
-	            return rv;
+	            return count;
 	        }
 	
-	        // no content
+	        // export no content object metadata
 	        if (m_sObj.getContentSize() == 0L) {
 	            if (isVirtualDoc()) {
 	                System.out.println("Exporting virtual doc root, no content: " + Utils.getObjectPath(m_sObj, m_session) + "/" + m_sObj.getObjectName());
 	                Utils.writeLog("Exporting virtual doc root, no content: " + Utils.getObjectPath(m_sObj, m_session) + "/" + m_sObj.getObjectName());
 	                exportDocumentMetadata();
-	                exportVirtualDocChildren();
-	                System.out.println("End virtual doc export (" + getObjectId() + ")");
-	                Utils.writeLog("End virtual doc export (" + getObjectId() + ")");
+	                count += exportVirtualDocChildren(); // export VD children if this is a content-less VD root
 	            } else {
 	                System.out.println("No content, exporting metadata only: " + Utils.getObjectPath(m_sObj, m_session) + "/" + m_sObj.getObjectName());
 	                Utils.writeLog("No content, exporting metadata only: " + Utils.getObjectPath(m_sObj, m_session) + "/" + m_sObj.getObjectName());
 	                exportDocumentMetadata();
 	            }
-	            return rv;
+	            return count;
 	        }
 	
-	        // export file
+	        // v1.5
+	        // export BOCS parked metadata
+	        if (isParked()) {
+	            System.out.println("Content parked, exporting metadata only: " + Utils.getObjectPath(m_sObj, m_session) + "/" + m_sObj.getObjectName());
+	            Utils.writeLog("Content parked, exporting metadata only: " + Utils.getObjectPath(m_sObj, m_session) + "/" + m_sObj.getObjectName());
+	            exportDocumentMetadata();
+	            return count;
+	        }
+	        
+	        // export content file
 	        String file = m_sObj.getFile(m_exportPath + "/" + m_sObj.getObjectId().toString() + "." + getDOSExt());
-	
-	        // virtual doc
+	        
+	        // export virtual doc children
 	        if (isVirtualDoc()) {
 	            System.out.println("Exporting virtual doc root content: " + Utils.getObjectPath(m_sObj, m_session) + "/" + m_sObj.getObjectName() + " ==> " + file);
 	            Utils.writeLog("Exporting virtual doc root content: " + Utils.getObjectPath(m_sObj, m_session) + "/" + m_sObj.getObjectName() + " ==> " + file);
 	            exportDocumentMetadata();
-	            exportVirtualDocChildren();
-	            System.out.println("End virtual doc export (" + getObjectId() + ")");
-	            Utils.writeLog("End virtual doc export (" + getObjectId() + ")");
-	        // v1.5
-	        } else if (isParked()) {
-	            System.out.println("Content parked, exporting metadata only: " + Utils.getObjectPath(m_sObj, m_session) + "/" + m_sObj.getObjectName());
-	            Utils.writeLog("Content parked, exporting metadata only: " + Utils.getObjectPath(m_sObj, m_session) + "/" + m_sObj.getObjectName());
-	            exportDocumentMetadata();
+	            count += exportVirtualDocChildren();
 	        } else {
+	        	// export normal content file
 	            System.out.println("Exporting content: " + Utils.getObjectPath(m_sObj, m_session) + "/" + m_sObj.getObjectName() + " ==> " + file);
 	            Utils.writeLog("Exporting content: " + Utils.getObjectPath(m_sObj, m_session) + "/" + m_sObj.getObjectName() + " ==> " + file);
 	            exportDocumentMetadata();
 	        }
 	        
+	        // v1.6
+	        // export all renditions associated with an object
+	        if (hasRenditions()) {
+	        	for (String format : m_Renditions) {
+	        		file = m_sObj.getFileEx(m_exportPath + "/" + m_sObj.getObjectId().toString() + ".rendition." + Utils.lookupDosExt(format, m_session), format, 0, false);
+	        		System.out.println("\trendition "  + format + ": " + Utils.getObjectPath(m_sObj, m_session) + "/" + m_sObj.getObjectName() + " ==> " + file);
+	        		Utils.writeLog("\trendition "  + format + ": " + Utils.getObjectPath(m_sObj, m_session) + "/" + m_sObj.getObjectName() + " ==> " + file);
+	        		count++;
+	        	}
+        	}
+	        
     	} catch (Exception e) {
-    		rv = false;
             System.out.println("Error exporting content: " + e.getMessage());
             Utils.writeLog("Error exporting content: " + e.getMessage());
     	}
-        return rv;
+
+    	return count;  // return number of objects exported
     }
 
+    /*
+     * Export the object's metadata to an XML file.
+     */
     private String exportDocumentMetadata() throws Exception {
         String filename = "";
 
-        // figure out file suffix
+        // figure out file suffix and build metadata file name
         if (DCTMBasics.isFolder(m_sObj)) {
             filename = Utils.FOLDER_FILE_EXT;
         } else {
@@ -175,7 +208,7 @@ public class ExportObj {
         }
         filename = m_sObj.getObjectId().toString() + filename;
 
-        // log export
+        // log the export
         System.out.println("\tmetadata file ==> " + filename);
         Utils.writeLog("\tmetadata file ==> " + filename);
 
@@ -192,7 +225,7 @@ public class ExportObj {
 
             // get property values
             xmlFile.println("<properties>");
-            xmlFile.print(buildAttrExportString());
+            xmlFile.print(buildAttrExportString());  // build all of the properties
             xmlFile.println("</properties>");
 
             // save repo path
@@ -208,6 +241,12 @@ public class ExportObj {
                 xmlFile.println(buildVDAttrString());
             }
 
+            // v1.6
+            // export rendition formats
+            if (hasRenditions()) {
+            	xmlFile.println(buildRenditionAttrString());
+            }
+            
             // close markup
             xmlFile.println("</object>");
 
@@ -220,6 +259,7 @@ public class ExportObj {
         return filename;
     }
 
+    
     /*
      * Build the XML that contains the object properties.  Note this method
      * ignores many important properties such as i_aspect_id, etc.  Other 
@@ -269,6 +309,7 @@ public class ExportObj {
         return sb.toString();
     }
 
+    
     /*
      * Build XML to hold virtual doc children references.
      */
@@ -281,24 +322,53 @@ public class ExportObj {
         sb.append("</vd_children>");
         return sb.toString();
     }
+    
+    
+    /*
+     * Build XML to hold rendition formats
+     */
+    private String buildRenditionAttrString() throws Exception {
+    	StringBuilder sb = new StringBuilder();
+    	sb.append("<renditions>\n");
+    	for (String format : m_Renditions) {
+    		String dosExt = Utils.lookupDosExt(format, m_session);
+    		sb.append("<rendition format=\"" + format + "\">" + m_objId + ".rendition." + dosExt + "</rendition>\n");
+    	}
+    	sb.append("</renditions>");
+    	return sb.toString();
+    }
 
+    
     /*
      * Export each virtual doc's children's content and metadata.  This
      * is sort of recursive if you think about it.
      */
-    private void exportVirtualDocChildren() throws Exception {
+    private int exportVirtualDocChildren() throws Exception {
+    	int vCount = 0;
+    	
+    	System.out.println("--------------------------------------");
+    	Utils.writeLog("--------------------------------------");
+    	System.out.println("Exporting virtual doc child content...");
+    	Utils.writeLog("Exporting virtual doc child content...");
+
         for (ExportObj eObj : m_VDChildren) {
-            eObj.exportContent();
+        	vCount += eObj.exportContent();  // count the number of children exported
         }
+        
+        System.out.println("End virtual doc export (" + m_objId + ")");
+        Utils.writeLog("End virtual doc export (" + m_objId + ")");
+        System.out.println("--------------------------------------");
+    	Utils.writeLog("--------------------------------------");
+    	return vCount;
     }
 
+    
     /*
      * Gather the objects that are children of this virtual doc, and add them
      * to the m_VDChildren ArrayList as ExportObjs.
      */
     private void gatherVDChildren() throws Exception {
         String DQL = "select r_object_id from dm_sysobject in document id('" + getObjectId() + "') descend";
-        //IDfCollection col = Utils.runQuery(DQL, getSession());
         IDfCollection col = DCTMBasics.runSelectQuery(DQL, getSession());
         while (col.next()) {
             String objId = col.getString("r_object_id");
@@ -310,9 +380,10 @@ public class ExportObj {
         }
         col.close();
     }
-
-    // ========== Helper Methods ==========
     
+
+    // ========== Getter Methods ==========
+        
     public boolean hasContent() {
         return m_hasContent;
     }
@@ -352,6 +423,11 @@ public class ExportObj {
     // v1.5
     public boolean isParked() {
     	return m_isParked;
+    }
+    
+    // v1.6
+    public boolean hasRenditions() {
+    	return m_hasRenditions;
     }
 }
 

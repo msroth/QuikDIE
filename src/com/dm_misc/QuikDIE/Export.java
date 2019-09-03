@@ -2,7 +2,7 @@ package com.dm_misc.QuikDIE;
 /* ============================================================================
  * QuikDIE - Quik Documentum Import/Export
  * Export Content Module
- * (c) 2013-2015 MS Roth
+ * (c) 2013-2019 MS Roth
  * 
  * This application will export content and metadata from a Documentum
  * repository according to the query contained in the export.properties
@@ -57,6 +57,9 @@ package com.dm_misc.QuikDIE;
  *     <vd_child>09003afd80000210</vd_child>
  *     <vd_child>09003afd804e9914</vd_child>
  *   </vd_children>
+ *   <renditions>
+ *     <rendition format="pdf">09003afd804f2ba8.rendition.pdf</rendition>
+ *   </renditions>
  * </object>
  *       
  * Notes:
@@ -64,7 +67,8 @@ package com.dm_misc.QuikDIE;
  *     had been a custom type with custom attributes, those would have been
  *     included here also.
  *   - this example is a virtual document, thus the virtdoc="true" XML attribute
- *     in the object element and the inclusion of the vd_children element.   
+ *     in the object element and the inclusion of the vd_children element.  
+ *   - this example also includes a PDF rendition of the root virtual document   
  *          
  * Sample type definition file:
  * <?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
@@ -98,7 +102,10 @@ package com.dm_misc.QuikDIE;
  *   1.5 - 2015-07-02 - added additional code to detect content "parked" on BOCS 
  *                      server
  *                    - added "dmi" extension to object types ignored  
- *                    - implemented DCTMBasics JAR                    
+ *                    - implemented DCTMBasics JAR        
+ *   1.6 - 2019-09-XX - added "dmr" extension to object types ignored
+ *                    - added renditions to exports (thanks Sindhu Pillai)
+ *                    - general clean up             
  * ============================================================================        
  */
 
@@ -112,7 +119,6 @@ import com.dm_misc.collections.dmRecordSet;
 import com.dm_misc.dctm.DCTMBasics;
 
 import com.documentum.fc.client.*;
-import com.documentum.fc.client.IDfTypedObject;
 import com.documentum.fc.common.*;
 
 import com.dm_misc.QuikDIE.Utils;
@@ -141,7 +147,7 @@ public class Export {
     }
 
     /*
-     * ignore passed arguments
+     * ignore passed arguments and do nothing on instantiation
      */
     private Export(String[] args) {
         // noop
@@ -156,17 +162,14 @@ public class Export {
      * end.
      */
     public void run() throws Exception {
-
-        //IDfClientX cx = new DfClientX();
+  	
+        System.out.println("\nInitializing...\n");
+        IDfSession session = null;
+        int objCount = 0;
         
         // check if DFC version is supported
         if (!DCTMBasics.checkDFCversion(6.5))
         	throw new Exception ("Only DFC v6.5 and higher is supported");
-              
-        //IDfClient client = cx.getLocalClient();
-        //IDfSessionManager sessionMgr = client.newSessionManager();
-        IDfSession session = null;
-        int objCount = 0;
 
         // read properties file
         if (!Utils.loadConfig(this.getClass(), Utils.EXPORT_PROPERTY_FILE)) {
@@ -191,7 +194,6 @@ public class Export {
         Utils.checkPassword(Utils.OP_EXPORT);
 
         // login
-        //session = Utils.login(Utils.getProperty(Utils.EXPORT_DOCBASE_KEY), Utils.getProperty(Utils.EXPORT_USER_KEY), Utils.getProperty(Utils.EXPORT_PASSWORD_KEY), sessionMgr);
         session = DCTMBasics.logon(Utils.getProperty(Utils.EXPORT_DOCBASE_KEY), Utils.getProperty(Utils.EXPORT_USER_KEY), Utils.getProperty(Utils.EXPORT_PASSWORD_KEY));
         if (session == null) {
             throw new Exception("Could not establish session with " + Utils.getProperty(Utils.EXPORT_DOCBASE_KEY));
@@ -199,19 +201,19 @@ public class Export {
             System.out.println("Login successful:  " + Utils.getProperty(Utils.EXPORT_USER_KEY) + "@" + Utils.getProperty(Utils.EXPORT_DOCBASE_KEY));
         }
 
-        // validate query
+        // validate export query query
         if (!validateQuery(Utils.getProperty(Utils.EXPORT_QUERY_KEY))) {
             throw new Exception("Query must start with: SELECT R_OBJECT_ID or SELECT *");
         }
 
-        // write log file header
+        // write log file header, including contents of config file used for export
         Utils.writeLog(BANNER);
         Utils.writeLog(new Date().toString());
+        Utils.writeLog("");
         Utils.writeLog(Utils.dumpProperties(false));
         Utils.writeLog("");
 
-        // run export query
-        //IDfCollection col = Utils.runQuery(Utils.getProperty(Utils.EXPORT_QUERY_KEY), session);
+        // run export query and load into dmRecordSet object
         IDfCollection col = DCTMBasics.runSelectQuery(Utils.getProperty(Utils.EXPORT_QUERY_KEY), session);
         dmRecordSet dmRS = new dmRecordSet(col);
         col.close();
@@ -219,8 +221,8 @@ public class Export {
         if (dmRS.isEmpty()) {
             throw new Exception("Query returned 0 objects to process");
         } else {
-            System.out.println("Found " + dmRS.getRowCount() + " objects to export...\n");
-            Utils.writeLog("Found " + dmRS.getRowCount() + " objects to export...\n");
+            System.out.println("Found " + dmRS.getRowCount() + " primary objects to export...\n");
+            Utils.writeLog("Found " + dmRS.getRowCount() + " primary objects to export...\n");
         }
 
         // process result set
@@ -232,28 +234,28 @@ public class Export {
             // create export obj
             ExportObj expObj = new ExportObj(tObj.getString("r_object_id"), Utils.getProperty(Utils.EXPORT_PATH_KEY), session);
 
-            // export the obj
-            boolean success = expObj.exportContent();
-            if (success) {
-                objCount++;
-            }
-
+            // export the object and keep count of objects exported
+            objCount += expObj.exportContent();
+            
             // check for custom types
             if (!Utils.omitTypes(expObj.getTypeName())) {
-                if (!m_ObjTypeSet.contains(expObj.getTypeName())) // add custom types to be processed later				
+                if (!m_ObjTypeSet.contains(expObj.getTypeName())) // add custom types to be processed below				
                 {
                     m_ObjTypeSet.add(expObj.getTypeName());
                 }
             }
         }
 
-        // export custom type defs
-        exportTypeDefinitions(session);
+        // export custom type defs and count as exported objects
+        objCount += exportTypeDefinitions(session);
 
+
+        // close session
         if (session != null) {
             session.getSessionManager().release(session);
         }
 
+        // close down log files
         System.out.println("\nExported " + objCount + " objects.");
         System.out.println(new Date().toString());
         Utils.writeLog("\nExported " + objCount + " objects.");
@@ -262,6 +264,7 @@ public class Export {
         System.out.println("Done.");
     }
 
+    
     /*
      * Ensure the query string will return the r_object_id at a minimum.
      * We need the r_object_id to instantiate ExportObjs.
@@ -272,6 +275,7 @@ public class Export {
         int sIndex = query.toLowerCase().indexOf("select");
         int fIndex = query.toLowerCase().indexOf("from");
 
+        // if not select or from found it's an invalid query
         if (sIndex > -1 && fIndex > -1) {
             temp = query.toLowerCase().substring(sIndex, fIndex);
         } else {
@@ -286,17 +290,20 @@ public class Export {
         }
     }
 
+    
     /*
      * Create XML files that contain the details of custom object types exported.
      * The list of custom object types found during the content export is in the
      * m_ObjTypeSet ArrayList.  XML files are created for each type that describe
      * their custom attributes.
      */
-    private void exportTypeDefinitions(IDfSession session) throws Exception {
+    private int exportTypeDefinitions(IDfSession session) throws Exception {
+    	int count = 0;
         String path = Utils.getProperty(Utils.EXPORT_PATH_KEY);
         String template = "<attribute name=\"%s\" type=\"%s\" size=\"%d\" repeating=\"%s\" />";
 
         for (String type : m_ObjTypeSet) {
+        	count += 1; // count the number of custom type XML files created
             IDfType typeObj = session.getType(type);
             String filename = type + Utils.TYPEDEF_FILE_EXT;
 
@@ -336,7 +343,9 @@ public class Export {
                 xmlFile.close();
             }
         }
+        return count;
     }
+    
 }
 
 /* ============================================================================

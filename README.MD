@@ -24,7 +24,7 @@ The query must return r_object_id.
 
 Here is an example *.metadata.xml file.
 
-![metadata xml](https://github.com/msroth/QuikDIE/images/export_xml2.jpg)
+![metadata_xml](https://github.com/msroth/QuikDIE/blob/master/images/export_xml2.jpg)
 
 <b>Notes:</b>
 
@@ -35,4 +35,4 @@ Here is an example *.metadata.xml file.
 
 Here is an example of a *.typedef.xml file.
 
-![type xml](https://github.com/msroth/QuikDIE/images/type_xml.jpg)
+![type xml](https://github.com/msroth/QuikDIE/blob/master/images/type_xml.jpg)

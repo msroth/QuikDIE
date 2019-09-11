@@ -15,7 +15,7 @@ import java.io.OutputStream;
 import java.io.PrintWriter;
 
 import java.text.SimpleDateFormat;
-
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.Properties;
@@ -45,11 +45,12 @@ public class Utils {
     public static final String OP_IMPORT = "IMPORT";
     public static final String APP_BANNER = "QuikDIE - A Quick Documentum Import/Export Utility ";
     public static final String COPYRIGHT = "(c) 2013-2019 MS Roth";
-    public static final String[] OMIT_OBJ_PREFIXES = {"dm", "d2", "c2", "c6", "x3", "o2", "dmi", "dmr"};
+    public static final String[] OMIT_OBJ_PREFIXES = {"dm", "d2", "c2", "c6", "x3", "o2", "dmi", "dmr", "dmc"};
+    public static final String[] SKIP_IMPORT_ATTRS = {"r_object_id", "r_version_label", "r_creation_date", "r_modify_date", "i_chornicle_id", "a_antecedent_id"};
     
     // export app properties
     public static final String EXPORT_PROPERTY_FILE = "export.properties";
-    public static final String EXPORT_VERSION = "1.6";
+    public static final String EXPORT_VERSION = "1.7";
     
     // import app properties
     public static final String IMPORT_PROPERTY_FILE = "import.properties";
@@ -58,7 +59,7 @@ public class Utils {
     public static final String IMPORT_TYPE_CONTENT = "content";
     public static final String IMPORT_VERSION = "0.1";
     
-    // attr constants
+    // dctm attr constants
     public static final String ATTR_OBJ_ID = "r_object_id";
     public static final String ATTR_OBJ_NAME = "object_name";
     public static final String ATTR_OBJ_TYPE = "r_object_type";
@@ -77,11 +78,13 @@ public class Utils {
     public static final String ATTR_OBJ_CREATE_DATE = "r_creation_date";
     public static final String ATTR_OBJ_MODIFIER = "r_modifier";
     public static final String ATTR_OBJ_MODIFY_DATE = "r_modify_date";
+    public static final String ATTR_OBJ_VIRTUAL_DOC = "virtdoc";
     
     // file extensions
     public static final String METADATA_FILE_EXT = ".metadata.xml";
     public static final String FOLDER_FILE_EXT = ".folder.xml";
     public static final String TYPEDEF_FILE_EXT = ".type.xml";
+    public static final String ACLDEF_FILE_EXT = ".acl.xml";
     
     // export property keys
     public static final String EXPORT_QUERY_KEY = "export.query";
@@ -99,6 +102,35 @@ public class Utils {
     public static final String IMPORT_USE_EXPORT_REPO_ATTRS_KEY = "import.use_export_repo_attrs";
     public static final String IMPORT_FILES_PATH_KEY = "import.file_source";
     public static final String IMPORT_LOG_KEY = "import.log";
+
+    // xml constants
+    public static final String XML_HEADER = "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\" ?>";
+    public static final String XML_ATTR_NAME = "name";
+    public static final String XML_ATTR_TYPE = "type";
+    public static final String XML_REPO_PATH_ELEMENT = "repo_path";
+    public static final String XML_CONTENT_FILE_ELEMENT = "content_file";
+    public static final String XML_PROPERTIES_ELEMENT = "properties";
+    public static final String XML_PROPERTY_ELEMENT = "property";
+    public static final String XML_PERMISSIONS_ELEMENT = "permissions";
+    public static final String XML_PERMISSION_ELEMENT = "permission";
+    public static final String XML_VD_CHILDREN_ELEMENT = "vd_children";
+    public static final String XML_VD_CHILD_ELEMENT = "vd_child";
+    public static final String XML_RENDITIONS_ELEMENT = "renditions";
+    public static final String XML_RENDITION_ELEMENT = "rendition";
+    public static final String XML_ATTR_ACCESSOR = "accessor_name";
+    public static final String XML_ATTR_ACCESSOR_PERMIT = "accessor_permit";
+    public static final String XML_ATTR_ACCESSOR_XPERMIT = "accessor_x_permit";
+    public static final String XML_ATTR_FORMAT = "format";
+    public static final String XML_ATTR_CUSTOM = "custom";
+    
+    // xml templates
+    public static final String XML_PROPERTIES_TEMPLATE = "<" + XML_PROPERTIES_ELEMENT + ">\n%s</" + XML_PROPERTIES_ELEMENT + ">";
+    public static final String XML_REPO_PATH_TEMPLATE = "<" + XML_REPO_PATH_ELEMENT + ">%s</" + XML_REPO_PATH_ELEMENT + ">";
+    public static final String XML_CONTENT_FILE_TEMPLATE = "<" + XML_CONTENT_FILE_ELEMENT + ">%s</" + XML_CONTENT_FILE_ELEMENT + ">";
+    public static final String XML_PERMISSIONS_TEMPLATE = "<" + XML_PERMISSIONS_ELEMENT + ">\n%s</" + XML_PERMISSIONS_ELEMENT + ">";
+    public static final String XML_VD_CHILDREN_TEMPLATE = "<" + XML_VD_CHILDREN_ELEMENT + ">\n%s</" + XML_VD_CHILDREN_ELEMENT + ">";
+    public static final String XML_RENDITIONS_TEMPLATE = "<" + XML_RENDITIONS_ELEMENT + ">\n%s</" + XML_RENDITIONS_ELEMENT + ">";
+    public static final String XML_OBJECT_OPEN_TEMPLATE = "<object " + ATTR_OBJ_ID + "=\"%s\" " + ATTR_OBJ_TYPE + "=\"%s\" content=\"%s\" virtdoc=\"%s\">";
 
     
     public static boolean loadConfig(Class thisClass, String propFilePath) throws Exception {
@@ -257,7 +289,9 @@ public class Utils {
 
     // TBD - move files on file system
     public static void moveFilesToDir(File[] files, String path) {
+    	
         // TODO
+    	
     }
 
     
@@ -312,7 +346,7 @@ public class Utils {
     }
 
 
-    // determine if a type already exists in the repo
+    // determine if a type exists in the repo
     public static boolean checkTypeExists(String type, IDfSession session) throws Exception {
 
         if (type == null || type.length() == 0) {
@@ -329,6 +363,28 @@ public class Utils {
         	return false;
     }
 
+    
+    // determine if a acl exists in the repo
+    public static boolean checkACLExists(String domain, String acl, IDfSession session) throws Exception {
+
+        if (domain == null || domain.length() == 0) {
+            return false;
+        }
+        
+        if (acl == null || acl.length() == 0) {
+            return false;
+        }
+
+        String dql = "select r_object_id from dm_acl where object_name = '" + acl + "' and owner_name = '" + domain + "'";
+        String rv = null;
+        rv = DCTMBasics.runDQLQueryReturnSingleValue(dql, session);
+
+        if (rv != null && !rv.isEmpty())
+        	return true;
+        else
+        	return false;
+    }
+    
     
     // return the contents of the properties object formatted as key=value pairs
     public static String dumpProperties(boolean showPW) {
@@ -361,6 +417,18 @@ public class Utils {
     }
     
     
+    // if attr on the SKIP list, ignore it
+    public static boolean skipAttrs(String attr) {
+
+        for (String skip : Utils.SKIP_IMPORT_ATTRS) {
+            if (attr.equalsIgnoreCase(skip)) {
+                return true;
+            }
+        }
+        return false;
+    }
+    
+    
     // clean the XML strings
     public static String cleanXML(String stringToclean) {
     	return StringEscapeUtils.escapeXml(stringToclean);
@@ -373,6 +441,24 @@ public class Utils {
     	return ext;
     }
 
+    
+    // get list of XML files based upon file extension
+	public static ArrayList<String> getXMLFilesToImport(String path, String filemask) {
+		ArrayList<String> files = new ArrayList<String>();
+		File dir = new File(path);
+		File[] list = dir.listFiles();
+
+		for (File f : list) {
+			if (!f.isDirectory()) {
+				if (f.getName().toLowerCase().contains(filemask.toLowerCase())) {
+					files.add(f.getAbsolutePath());
+					//System.out.println("file " + f.getName() + " added");
+				}	
+			}	
+		}
+
+		return files;
+	}
 }
 
 //<SDG><

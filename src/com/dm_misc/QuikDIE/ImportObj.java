@@ -32,7 +32,6 @@ public class ImportObj {
 
 	// private members
 	private boolean m_state = false;
-	private boolean m_useExportRepoAttrs = false;
 	private File m_metadataFile = null;
 	private File m_contentFile = null;
 	private Properties m_importObjProps = new Properties();
@@ -47,21 +46,6 @@ public class ImportObj {
 	private ArrayList<String> m_baseAttrs = new ArrayList<String>();
 	private ArrayList<String> m_customAttrs = new ArrayList<String>();
 
-//	private List<String> BASE_ATTRS = Arrays.asList(
-//			Utils.ATTR_OBJ_NAME, 
-//			Utils.ATTR_OBJ_TITLE, 
-//			Utils.ATTR_OBJ_SUBJECT, 
-//			Utils.ATTR_OBJ_CONTENT_TYPE);
-//
-//	private List<String> REPO_SPECIFIC_ATTRS = Arrays.asList(
-//			Utils.ATTR_OBJ_ACL_DOMAIN,
-//			Utils.ATTR_OBJ_ACL_NAME,
-//			Utils.ATTR_OBJ_OWNER,
-//			// Utils.ATTR_OBJ_CREATOR,
-//			Utils.ATTR_OBJ_MODIFIER);
-//
-//	private ArrayList<String> m_CustomAttrs = new ArrayList<String>();
-	
 
 	public ImportObj(String metadatafile, IDfSession session) {
 
@@ -72,18 +56,9 @@ public class ImportObj {
 			else
 				m_session = session;
 			
-			// check if using export attrs or not
-			// TODO -- This means the names of attrs on the target objects will be read from the XML file.
-			// Could this be any other way?
-			// m_useExportRepoAttrs = Boolean.parseBoolean(Utils.getProperty(Utils.IMPORT_USE_EXPORT_REPO_ATTRS_KEY));
-			//m_useExportRepoAttrs = true;
-			
 			// read metadata file and load member properties
 			m_metadataFile = new File(metadatafile);
 			loadMetadataFile();
-
-			// read custom type file and load member properties
-			// loadTypeFile(getImportObjProperty(Utils.ATTR_OBJ_TYPE) + Utils.TYPEDEF_FILE_EXT);
 				
 			// check that obj type exists -- custom types should have already been created
 			if (!Utils.checkTypeExists(getImportObjProperty(Utils.ATTR_OBJ_TYPE), m_session)) {
@@ -92,7 +67,6 @@ public class ImportObj {
 			}
 
 			// check that ACL exits -- ACLs should have already been created
-			// TODO
 			if ((getImportObjProperty(Utils.ATTR_OBJ_ACL_DOMAIN) != "") || (getImportObjProperty(Utils.ATTR_OBJ_ACL_NAME) != "")) {
 				if (!Utils.checkACLExists(getImportObjProperty(Utils.ATTR_OBJ_ACL_DOMAIN), getImportObjProperty(Utils.ATTR_OBJ_ACL_NAME), session)) {
 					setErrorMsg("acl " + getImportObjProperty(Utils.ATTR_OBJ_ACL_DOMAIN) + ":" + getImportObjProperty(Utils.ATTR_OBJ_ACL_NAME) + " does not exist in target Docbase");
@@ -109,7 +83,7 @@ public class ImportObj {
 				throw new Exception ("could not create " + getImportObjProperty(Utils.ATTR_OBJ_TYPE) + " object for " + m_contentFile.getAbsolutePath());
 			}
 			
-			// set attrs
+			// set attrs on new repo object
 			setImportObjAttrs();
 			
 			// link
@@ -125,40 +99,26 @@ public class ImportObj {
 				if (m_contentFile != null) {
 					m_sObj.setContentType(getImportObjProperty(Utils.ATTR_OBJ_CONTENT_TYPE));
 					m_sObj.setFile(m_contentFile.getAbsolutePath());
-					m_sObj.save();
 				}
+				m_sObj.save();
 			}
 			
-			// process VD children (use pseudo-recursive idea like exporting them)
+			// process VD children
 			if (m_importObjVDChildren.size() > 0) {
-				
-				// make this obj a VD
-				m_sObj.checkout();
-				m_sObj.setIsVirtualDocument(true);
-				IDfVirtualDocument vDoc = m_sObj.asVirtualDocument("CURRENT", false);
-				
-				// Import and add children
-				Set<String> keys = m_importObjVDChildren.stringPropertyNames();
-				for (String key : keys) {
-					String filename = getImportObjProperty(Utils.IMPORT_FILES_PATH_KEY) + "\\" + key + Utils.METADATA_FILE_EXT;
-					ImportObj iObj = new ImportObj(filename, m_session);
-					vDoc.addNode(vDoc.getRootNode(), null, iObj.m_sObj.getChronicleId(), null, false, false);
-					System.out.println("\tAttatched virtual document child");
-				}
-				m_sObj.checkin(false, "");
-				
+				importVDChildren();
 			}
-			// TODO -- set renditions
+			
+			// set renditions
 			if (m_importObjRenditions.size() > 0) {
 				Set<String> keys = m_importObjRenditions.stringPropertyNames();
 				for (String key : keys) {
-				
+					String format = key;
+					String file = Utils.getProperty(Utils.IMPORT_FILES_PATH_KEY) + "\\" + m_importObjRenditions.getProperty(key);
+					m_sObj.addRendition(file, format);
+					System.out.println("\tSetting rendition: " + format);
 				}
+				m_sObj.save();
 			}
-			
-			
-			//save
-			m_sObj.save();
 			
 			m_state = true;
 
@@ -172,10 +132,11 @@ public class ImportObj {
 	private File findContentFile() {
 		File file = null;
 
-		String obj_id = getImportObjProperty(Utils.ATTR_OBJ_ID);
-		String ext = getImportObjProperty(Utils.ATTR_OBJ_CONTENT_TYPE);
+		// String obj_id = getImportObjProperty(Utils.ATTR_OBJ_ID);
+		// String ext = getImportObjProperty(Utils.ATTR_OBJ_CONTENT_TYPE);
+		// String filename = path + "/" + obj_id + "." + ext;	
 		String path = Utils.getProperty(Utils.IMPORT_FILES_PATH_KEY);
-		String filename = path + "/" + obj_id + "." + ext;
+		String filename = path + "/" + getImportObjProperty(Utils.XML_CONTENT_FILE_ELEMENT);
 		//System.out.println("\tcontent file is: " + filename);
 		file = new File(filename);
 		if (file.exists())
@@ -200,23 +161,15 @@ public class ImportObj {
 			//System.out.println("root=" + root.getName());
 
 			// get obj id
-			//String attr = root.getAttributeValue(Utils.ATTR_OBJ_ID);
-			//System.out.println(ATTR_OBJ_ID + "=" + attr);
 			setImportObjProperty(Utils.ATTR_OBJ_ID, root.getAttributeValue(Utils.ATTR_OBJ_ID));
 			
 			// get obj type
-			//String obj_type = root.getAttributeValue(Utils.ATTR_OBJ_TYPE);
-			//System.out.println(ATTR_OBJ_TYPE + "=" + obj_type);
 			setImportObjProperty(Utils.ATTR_OBJ_TYPE, root.getAttributeValue(Utils.ATTR_OBJ_TYPE));
 						
 			// get has content value
-			//attr = root.getAttributeValue(Utils.ATTR_OBJ_HAS_CONTENT);
-			//System.out.println(ATTR_OBJ_HAS_CONTENT + "=" + attr);
 			setImportObjProperty(Utils.ATTR_OBJ_HAS_CONTENT, root.getAttributeValue(Utils.ATTR_OBJ_HAS_CONTENT));
 
 			// get is_virtdoc
-			//attr = root.getAttributeValue(Utils.ATTR_OBJ_HAS_CONTENT);
-			//System.out.println(ATTR_OBJ_HAS_CONTENT + "=" + attr);
 			setImportObjProperty(Utils.ATTR_OBJ_VIRTUAL_DOC, root.getAttributeValue(Utils.ATTR_OBJ_VIRTUAL_DOC));
 			
 			// loop over child elements
@@ -259,7 +212,10 @@ public class ImportObj {
 							m_customAttrs.add(attr);
 						} else {
 							if (!Utils.skipAttrs(attr)) {
-								m_baseAttrs.add(attr);
+								// keep acl_name out if it is blank
+								if (getImportObjProperty(Utils.ATTR_OBJ_ACL_NAME) != "") {
+									m_baseAttrs.add(attr);
+								}
 							}
 						}
 					}
@@ -315,6 +271,7 @@ public class ImportObj {
 		
 		// set base attrs
 		for (String attr : m_baseAttrs) {
+			// omit certain attrs that can't be set
 			m_sObj.setString(attr, getImportObjProperty(attr));
 		}
 		
@@ -338,6 +295,15 @@ public class ImportObj {
 						
 				m_sObj.grant(key, permit, x_permit);
 			}
+		} else {
+			// check that acl exists - it should
+			if (Utils.checkACLExists(getImportObjProperty(Utils.ATTR_OBJ_ACL_DOMAIN), getImportObjProperty(Utils.ATTR_OBJ_ACL_NAME), m_session)) {
+				m_sObj.setString(Utils.ATTR_OBJ_ACL_DOMAIN, getImportObjProperty(Utils.ATTR_OBJ_ACL_DOMAIN));
+				m_sObj.setString(Utils.ATTR_OBJ_ACL_NAME, getImportObjProperty(Utils.ATTR_OBJ_ACL_NAME));
+			} else {
+				// noop - just create a system ACL
+			}
+			
 		}
 			
 	}
@@ -356,6 +322,52 @@ public class ImportObj {
 	}
 	
 
+	private void importVDChildren() {
+
+		// make this obj a VD
+		try {
+			m_sObj.checkout();
+			m_sObj.setIsVirtualDocument(true);
+			IDfVirtualDocument vDoc = m_sObj.asVirtualDocument("CURRENT", false);
+
+			// Import and add children
+			Set<String> keys = m_importObjVDChildren.stringPropertyNames();
+			for (String key : keys) {
+				String xmlFile = Utils.getProperty(Utils.IMPORT_FILES_PATH_KEY) + "\\" + key	+ Utils.METADATA_FILE_EXT;
+				File metadataFile = new File(xmlFile);
+
+				// SAX
+				// open the vd child metadata file to get filename
+				SAXBuilder builder = new SAXBuilder();
+				Document Doc = null;
+				String filename = "";
+
+				Doc = builder.build(metadataFile);
+				Element root = Doc.getRootElement();
+
+				// loop over child elements
+				List<Element> xml_elements = root.getChildren();
+				for (int i = 0; i < xml_elements.size(); i++) {
+					Element element = xml_elements.get(i);
+
+					// get content file
+					if (element.getName().equalsIgnoreCase(Utils.XML_CONTENT_FILE_ELEMENT)) {
+						filename = element.getValue();
+					}
+				}
+
+				ImportObj iObj = new ImportObj(Utils.getProperty(Utils.IMPORT_FILES_PATH_KEY) + "\\" + filename, m_session);
+				vDoc.addNode(vDoc.getRootNode(), null, iObj.m_sObj.getChronicleId(), null, false, false);
+				System.out.println("\tAttatched virtual document child: " + filename);
+				metadataFile = null;
+				
+			}
+			m_sObj.checkin(false, "");
+		} catch (Exception e) {
+			System.out.println("\tERROR: attaching virtual document child: " + e.toString());
+			return;
+		}
+	}
 	
 	
 	// ----- Getters/Setters -----
@@ -418,10 +430,6 @@ public class ImportObj {
 
 	public boolean hasContent() {
 		return Boolean.valueOf(getImportObjProperty(Utils.ATTR_OBJ_HAS_CONTENT));
-	}
-
-	public boolean ignoreExportedRepoProperties() {
-		return Boolean.parseBoolean(Utils.getProperty(Utils.IMPORT_USE_EXPORT_REPO_ATTRS_KEY));
 	}
 
 	public String getObjectId() {

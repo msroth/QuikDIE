@@ -154,6 +154,12 @@ public class DmImport {
 							" | " + iObj.getSysObject().getTypeName() + " | " + iObj.getObjectId());
 					if (iObj.getErrorMsg().length() > 0)
 						System.out.println("\t" + iObj.getErrorMsg());
+					
+					
+					
+					// TODO - move rendition and VD import here so output is correct
+					
+					
 
 				} else {
 

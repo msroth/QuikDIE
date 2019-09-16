@@ -58,7 +58,7 @@ public class ImportObj {
 			
 			// read metadata file and load member properties
 			m_metadataFile = new File(metadatafile);
-			loadMetadataFile();
+			readMetadataFile();
 				
 			// check that obj type exists -- custom types should have already been created
 			if (!Utils.checkTypeExists(getImportObjProperty(Utils.ATTR_OBJ_TYPE), m_session)) {
@@ -103,22 +103,6 @@ public class ImportObj {
 				m_sObj.save();
 			}
 			
-			// process VD children
-			if (m_importObjVDChildren.size() > 0) {
-				importVDChildren();
-			}
-			
-			// set renditions
-			if (m_importObjRenditions.size() > 0) {
-				Set<String> keys = m_importObjRenditions.stringPropertyNames();
-				for (String key : keys) {
-					String format = key;
-					String file = Utils.getProperty(Utils.IMPORT_FILES_PATH_KEY) + "\\" + m_importObjRenditions.getProperty(key);
-					m_sObj.addRendition(file, format);
-					System.out.println("\tSetting rendition: " + format);
-				}
-				m_sObj.save();
-			}
 			
 			m_state = true;
 
@@ -132,9 +116,7 @@ public class ImportObj {
 	private File findContentFile() {
 		File file = null;
 
-		// String obj_id = getImportObjProperty(Utils.ATTR_OBJ_ID);
-		// String ext = getImportObjProperty(Utils.ATTR_OBJ_CONTENT_TYPE);
-		// String filename = path + "/" + obj_id + "." + ext;	
+
 		String path = Utils.getProperty(Utils.IMPORT_FILES_PATH_KEY);
 		String filename = path + "/" + getImportObjProperty(Utils.XML_CONTENT_FILE_ELEMENT);
 		//System.out.println("\tcontent file is: " + filename);
@@ -148,7 +130,7 @@ public class ImportObj {
 		}
 	}
 
-	private void loadMetadataFile() {
+	private void readMetadataFile() {
 
 		// SAX
 		// File metadataFile = new File(m_metadatafile);
@@ -158,7 +140,6 @@ public class ImportObj {
 		try {
 			Doc = builder.build(m_metadataFile);
 			Element root = Doc.getRootElement();
-			//System.out.println("root=" + root.getName());
 
 			// get obj id
 			setImportObjProperty(Utils.ATTR_OBJ_ID, root.getAttributeValue(Utils.ATTR_OBJ_ID));
@@ -176,7 +157,6 @@ public class ImportObj {
 			List<Element> xml_elements = root.getChildren();
 			for(int i=0 ; i < xml_elements.size(); i++) {
 				Element element = xml_elements.get(i);
-				//System.out.println("element1[" + i + "]=" + element.getName());
 
 				// get repo_path
 				if (element.getName().equalsIgnoreCase(Utils.XML_REPO_PATH_ELEMENT)) {
@@ -322,55 +302,70 @@ public class ImportObj {
 	}
 	
 
-	private void importVDChildren() {
-
-		// make this obj a VD
-		try {
-			m_sObj.checkout();
-			m_sObj.setIsVirtualDocument(true);
-			IDfVirtualDocument vDoc = m_sObj.asVirtualDocument("CURRENT", false);
-
-			// Import and add children
-			Set<String> keys = m_importObjVDChildren.stringPropertyNames();
-			for (String key : keys) {
-				String xmlFile = Utils.getProperty(Utils.IMPORT_FILES_PATH_KEY) + "\\" + key	+ Utils.METADATA_FILE_EXT;
-				File metadataFile = new File(xmlFile);
-
-				// SAX
-				// open the vd child metadata file to get filename
-				SAXBuilder builder = new SAXBuilder();
-				Document Doc = null;
-				String filename = "";
-
-				Doc = builder.build(metadataFile);
-				Element root = Doc.getRootElement();
-
-				// loop over child elements
-				List<Element> xml_elements = root.getChildren();
-				for (int i = 0; i < xml_elements.size(); i++) {
-					Element element = xml_elements.get(i);
-
-					// get content file
-					if (element.getName().equalsIgnoreCase(Utils.XML_CONTENT_FILE_ELEMENT)) {
-						filename = element.getValue();
-					}
-				}
-
-				ImportObj iObj = new ImportObj(Utils.getProperty(Utils.IMPORT_FILES_PATH_KEY) + "\\" + filename, m_session);
-				vDoc.addNode(vDoc.getRootNode(), null, iObj.m_sObj.getChronicleId(), null, false, false);
-				System.out.println("\tAttatched virtual document child: " + filename);
-				metadataFile = null;
-				
-			}
-			m_sObj.checkin(false, "");
-		} catch (Exception e) {
-			System.out.println("\tERROR: attaching virtual document child: " + e.toString());
-			return;
-		}
-	}
+//	private void importVDChildren() {
+//
+//		// make this obj a VD
+//		try {
+//			m_sObj.checkout();
+//			m_sObj.setIsVirtualDocument(true);
+//			IDfVirtualDocument vDoc = m_sObj.asVirtualDocument("CURRENT", false);
+//
+//    	
+//			// Import and add children
+//			Set<String> keys = m_importObjVDChildren.stringPropertyNames();
+//			for (String key : keys) {
+//				String xmlFile = Utils.getProperty(Utils.IMPORT_FILES_PATH_KEY) + "\\" + key	+ Utils.METADATA_FILE_EXT;
+//				File metadataFile = new File(xmlFile);
+//
+//				// SAX
+//				// open the vd child metadata file to get filename
+//				SAXBuilder builder = new SAXBuilder();
+//				Document Doc = null;
+//				String filename = "";
+//
+//				Doc = builder.build(metadataFile);
+//				Element root = Doc.getRootElement();
+//
+//				// loop over child elements
+//				List<Element> xml_elements = root.getChildren();
+//				for (int i = 0; i < xml_elements.size(); i++) {
+//					Element element = xml_elements.get(i);
+//
+//					// get content file
+//					if (element.getName().equalsIgnoreCase(Utils.XML_CONTENT_FILE_ELEMENT)) {
+//						filename = element.getValue();
+//					}
+//				}
+//
+//				// recursive sort of thing importing using the ImportObj class
+//				ImportObj iObj = new ImportObj(Utils.getProperty(Utils.IMPORT_FILES_PATH_KEY) + "\\" + filename, m_session);
+//				vDoc.addNode(vDoc.getRootNode(), null, iObj.m_sObj.getChronicleId(), null, false, false);
+//				System.out.println("\tAttatched virtual document child: " + filename);
+//				metadataFile = null;
+//		    	
+//			}
+//
+//	    	
+//	    	// save VD root
+//			m_sObj.checkin(false, "");
+//			
+//		} catch (Exception e) {
+//			System.out.println("\tERROR: attaching virtual document child: " + e.toString());
+//			return;
+//		}
+//	}
 	
 	
 	// ----- Getters/Setters -----
+	
+	
+	public Properties getVDChildren() {
+		return m_importObjVDChildren;
+	}
+	
+	public Properties getRenditions() {
+		return m_importObjRenditions;
+	}
 	
 	private String getImportObjProperty(String key) {
 		if (m_importObjProps.containsKey(key))
@@ -436,6 +431,10 @@ public class ImportObj {
 		return m_objId;
 	}
 
+	public String getOrigObjId() {
+		return getImportObjProperty(Utils.ATTR_OBJ_ID);
+	}
+	
 	public String getImportFileName() {
 		return m_metadataFile.getName();
 	}

@@ -17,6 +17,7 @@ import java.io.PrintWriter;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Properties;
 import java.util.Set;
@@ -37,6 +38,7 @@ public class Utils {
 
     private static Properties m_properties = new Properties();
     private static PrintWriter m_log = null;
+	private static HashMap<String,String> m_importedObjectsMap= new HashMap<String,String>();
     
     // general constants
     public static final String PASSWORD_PREFIX = "DM_ENCR_TEXT=";
@@ -458,6 +460,36 @@ public class Utils {
 		}
 
 		return files;
+	}
+	
+	
+	public static String getNewObjIdFromImportedObjMap(String oldId) {
+		if (m_importedObjectsMap.containsKey(oldId)) {
+			return m_importedObjectsMap.get(oldId);
+		} else {
+			return "";
+		}
+	}
+	
+	
+	public static void addToImportedObjMap(String oldId, String newId) {
+		if (!m_importedObjectsMap.containsKey(oldId)) {
+			m_importedObjectsMap.put(oldId, newId);
+		}
+	}
+	
+	
+	public static HashMap<String, String> getImportedObjectsMap() {
+		return m_importedObjectsMap;
+	}
+	
+	public static void dumpImportedObjsMap() {
+		System.out.println("Imported objects r_object_id map");
+		System.out.println("Old Id                New Id");
+		System.out.println("----------------      ----------------");
+		for (String k : m_importedObjectsMap.keySet()) {
+			System.out.println(k + " ==> " + m_importedObjectsMap.get(k));
+		}
 	}
 }
 

@@ -25,7 +25,6 @@ import com.dm_misc.QuikDIE.Utils;
 public class DmImport {
 
 	private Set<String> m_ObjTypeSet = new HashSet<String>();
-	private HashMap<String,String> m_importedObjects= new HashMap<String,String>();
 	
     private static final String BANNER = "\n\n" + Utils.APP_BANNER + "\n" + Utils.COPYRIGHT + "\n\n"
             + "Import Content Module v" + Utils.IMPORT_VERSION + "\n"
@@ -142,11 +141,8 @@ public class DmImport {
 		System.out.println("Done.");
 		
 		
-		
-		Set<String> keys = m_importedObjects.keySet();
-		for (String k : keys) {
-			System.out.println(k + " ==> " + m_importedObjects.get(k));
-		}
+		System.out.println("\n\n");
+		Utils.dumpImportedObjsMap();
 		
 		
 		
@@ -154,124 +150,121 @@ public class DmImport {
 	}
 
 	
-	private void doImport(ArrayList<String> importFiles, String objType, IDfSession session) {
-		String console_template1 = "Importing %s object %s ==> ";
-		String console_template2 = " %s | %s %s | %s";
-		String log_template1 = "Imported %s object %s ==> %s | %s %s | %s";
-		
-		for (String f : importFiles) {
-			
-			System.out.print(String.format(console_template1, objType, f));
-			
-			try {
-				
-				// creation of the ImportObj causes the import to happen
-				ImportObj iObj = new ImportObj(f, session);
-				if (iObj.success()) {
+    private void doImport(ArrayList<String> importFiles, String objType, IDfSession session) {
+    	String console_template1 = "Importing %s object %s ==> ";
+    	String console_template2 = " %s | %s %s | %s";
+    	String log_template1 = "Imported %s object %s ==> %s | %s %s | %s";
 
-					// record imported object in map for use later when importing VD children
-					m_importedObjects.put(iObj.getOrigObjId(), iObj.getObjectId());
-					
-					String is_vdoc = "";
-					// log success
-					if (iObj.getVDChildren().size() > 0) {
-						is_vdoc =  " (vDoc)";
-					}
-					System.out.println(String.format(console_template2, Utils.getObjectPath(iObj.getSysObject(), session) + "/" + 
-							iObj.getSysObject().getObjectName(), iObj.getSysObject().getTypeName(), is_vdoc, iObj.getObjectId()));
-					
-					Utils.writeLog(String.format(log_template1, objType, iObj.getImportFileName(), Utils.getObjectPath(iObj.getSysObject(), session) + 
-							"/" + iObj.getSysObject().getObjectName(), iObj.getSysObject().getTypeName(), is_vdoc, iObj.getObjectId()));
-										
-					if (iObj.getErrorMsg().length() > 0)
-						System.out.println("\t" + iObj.getErrorMsg());
-					
-					// import VD children
-					Properties vdc = iObj.getVDChildren();
-					Set<String> vdcIds = vdc.stringPropertyNames();
-					if (!vdcIds.isEmpty()) {
-						iObj.getSysObject().checkout();
-						iObj.getSysObject().setIsVirtualDocument(true);
-						IDfVirtualDocument vDoc = iObj.getSysObject().asVirtualDocument("CURRENT", false);
-						
-				    	System.out.println("--------------------------------------");
-				    	Utils.writeLog("--------------------------------------");
-				    	System.out.println("Importing virtual doc child content...");
-				    	Utils.writeLog("Importing virtual doc child content...");
-				    	
-						// open VDC files to get filenames
-						for (String id : vdcIds) {
-							String xmlFile = Utils.getProperty(Utils.IMPORT_FILES_PATH_KEY) + "\\" + id	+ Utils.METADATA_FILE_EXT;
-							File metadataFile = new File(xmlFile);
+    	for (String f : importFiles) {
 
-							// SAX
-							// open the vd child metadata file to get obj_id
-							SAXBuilder builder = new SAXBuilder();
-							Document Doc = null;
-							String filename = "";
+    		System.out.print(String.format(console_template1, objType, f));
 
-							Doc = builder.build(metadataFile);
-							Element root = Doc.getRootElement();
-							String vdChildId = root.getAttributeValue(Utils.ATTR_OBJ_ID, root.getAttributeValue(Utils.ATTR_OBJ_ID));
-									
-							// get filename too for output below
-							
-							
-							// if the child was imported first, simply get the new obj_id from the map
-							if (m_importedObjects.containsKey(vdChildId)) {
-								vDoc.addNode(vDoc.getRootNode(), null, ( (IDfSysObject) session.getObject(new DfId(vdChildId))).getChronicleId(), null, false, false);
-							} else {
-								// this should create new child in docbase
-								ImportObj vdcObj = new ImportObj(xmlFile, session);
-								
-								// set new document as VD node
-								vDoc.addNode(vDoc.getRootNode(), null, vdcObj.getSysObject().getChronicleId(), null, false, false);
-							}
-							
-							System.out.println("\tAttached virtual document child: " + xmlFile);
-							metadataFile = null;
-							
-						}
-						
-				    	// save VD root
-						iObj.getSysObject().checkin(false, "");
-					
-				        System.out.println("End virtual doc import (" + iObj.getObjectId() + ")");
-				        Utils.writeLog("End virtual doc import (" + iObj.getObjectId() + ")");
-				        System.out.println("--------------------------------------");
-				    	Utils.writeLog("--------------------------------------");
-					}
-					
-					// import renditions
-					Properties renditions = iObj.getRenditions();
-					Set<String> rendIds = renditions.stringPropertyNames();
-					if (!rendIds.isEmpty()) {
-						for (String format : rendIds) {
-							String file = Utils.getProperty(Utils.IMPORT_FILES_PATH_KEY) + "\\" + renditions.getProperty(format);
-							iObj.getSysObject().addRendition(file, format);
-							System.out.println("\tSetting rendition: " + format);
-							Utils.writeLog("\tSetting rendition: " + format);
-						}
-						iObj.getSysObject().save();
-					}
-					
-				} else {
+    		try {
 
-					// log failure
-					Utils.writeLog("ERROR: failed to import " + iObj.getImportFileName() + " ==> " + iObj.getErrorMsg());
-					System.out.println("ERROR: " + iObj.getErrorMsg());
-					
-					// move filed files
-//					File[] files = {iObj.metadataFile(), iObj.contentFile()};
-//					Utils.moveFilesToDir(files, Utils.IMPORT_ERRORS_PATH);
+    			// creation of the ImportObj causes the import to happen
+    			ImportObj iObj = new ImportObj(f, session);
+    			if (iObj.success()) {
 
-				}
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-		}
-		
-	}
+    				// record imported object in map for use later when importing VD children
+    				Utils.addToImportedObjMap(iObj.getOrigObjId(), iObj.getObjectId());
+
+    				String is_vdoc = "";
+    				// log success
+    				if (iObj.getVDChildren().size() > 0) {
+    					is_vdoc =  " (vDoc)";
+    				}
+    				System.out.println(String.format(console_template2, Utils.getObjectPath(iObj.getSysObject(), session) + "/" + 
+    						iObj.getSysObject().getObjectName(), iObj.getSysObject().getTypeName(), is_vdoc, iObj.getSysObject().getObjectId().toString()));
+
+    				Utils.writeLog(String.format(log_template1, objType, iObj.getImportFileName(), Utils.getObjectPath(iObj.getSysObject(), session) + 
+    						"/" + iObj.getSysObject().getObjectName(), iObj.getSysObject().getTypeName(), is_vdoc, iObj.getSysObject().getObjectId().toString()));
+
+    				if (iObj.getErrorMsg().length() > 0)
+    					System.out.println("\t" + iObj.getErrorMsg());
+
+    				// import VD children
+    				Properties vdc = iObj.getVDChildren();
+    				Set<String> vdcIds = vdc.stringPropertyNames();
+    				if (!vdcIds.isEmpty()) {
+    					iObj.getSysObject().checkout();
+    					iObj.getSysObject().setIsVirtualDocument(true);
+    					IDfVirtualDocument vDoc = iObj.getSysObject().asVirtualDocument("CURRENT", false);
+
+    					System.out.println("--------------------------------------");
+    					Utils.writeLog("--------------------------------------");
+    					System.out.println("Importing virtual doc child content...");
+    					Utils.writeLog("Importing virtual doc child content...");
+
+    					// open VDC files to get filenames
+    					for (String id : vdcIds) {
+
+    						// if the child was imported first, simply get the new obj_id from the map
+    						if (Utils.getNewObjIdFromImportedObjMap(id) != "") {
+    							IDfSysObject child = (IDfSysObject) session.getObject(new DfId(id));
+    							vDoc.addNode(vDoc.getRootNode(), null, child.getChronicleId(), null, false, false);
+    							String fullObjPath = Utils.getObjectPath(child, session) + "\\" + child.getObjectName();
+    							System.out.println("\tAttached virtual document child: " + fullObjPath + " | " + child.getObjectId().toString());
+    							Utils.writeLog("\tAttached virtual document child: " + fullObjPath + " | " + child.getObjectId().toString());;
+    						} else {
+    							String xmlFile = Utils.getProperty(Utils.IMPORT_FILES_PATH_KEY) + "\\" + id	+ Utils.METADATA_FILE_EXT;
+
+    							// this should create new obj in docbase
+    							ImportObj vdcObj = new ImportObj(xmlFile, session);
+    							
+    							// record imported object in map
+    		    				Utils.addToImportedObjMap(iObj.getOrigObjId(), iObj.getObjectId());
+
+    							// set new document as VD node
+    							vDoc.addNode(vDoc.getRootNode(), null, vdcObj.getSysObject().getChronicleId(), null, false, false);
+
+    							System.out.println("\tImported and attached virtual document child: " + xmlFile + " ==> " + Utils.getObjectPath(vdcObj.getSysObject(), session) + 
+    									"\\" + vdcObj.getSysObject().getObjectName() + " | " + vdcObj.getSysObject().getObjectId().toString());
+    							Utils.writeLog("\tImported and attached virtual document child: " + xmlFile+ " ==> " + Utils.getObjectPath(vdcObj.getSysObject(), session) + 
+    									"\\" + vdcObj.getSysObject().getObjectName() + " | " + vdcObj.getSysObject().getObjectId().toString());
+    						}
+
+    					}
+
+    					// save VD root
+    					iObj.getSysObject().checkin(false, "");
+
+    					System.out.println("End virtual doc import (" + iObj.getObjectId() + ")");
+    					Utils.writeLog("End virtual doc import (" + iObj.getObjectId() + ")");
+    					System.out.println("--------------------------------------");
+    					Utils.writeLog("--------------------------------------");
+    				}
+
+    				// import renditions
+    				Properties renditions = iObj.getRenditions();
+    				Set<String> rendIds = renditions.stringPropertyNames();
+    				if (!rendIds.isEmpty()) {
+    					for (String format : rendIds) {
+    						String file = Utils.getProperty(Utils.IMPORT_FILES_PATH_KEY) + "\\" + renditions.getProperty(format);
+    						iObj.getSysObject().addRendition(file, format);
+    						System.out.println("\tSetting rendition: " + format);
+    						Utils.writeLog("\tSetting rendition: " + format);
+    						//objCount ++;
+    					}
+    					iObj.getSysObject().save();
+    				}
+
+    			} else {
+
+    				// log failure
+    				Utils.writeLog("ERROR: failed to import " + iObj.getImportFileName() + " ==> " + iObj.getErrorMsg());
+    				System.out.println("ERROR: " + iObj.getErrorMsg());
+
+    				// move filed files
+    				//					File[] files = {iObj.metadataFile(), iObj.contentFile()};
+    				//					Utils.moveFilesToDir(files, Utils.IMPORT_ERRORS_PATH);
+
+    			}
+    		} catch (Exception e) {
+    			e.printStackTrace();
+    		}
+    	}
+
+    }
 
 	private void doCreateTypes(ArrayList<String> typedefs, IDfSession session) {
 //		String template = "Creating type %s ==> ";

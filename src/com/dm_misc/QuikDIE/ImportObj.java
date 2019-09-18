@@ -117,7 +117,7 @@ public class ImportObj {
 		File file = null;
 
 
-		String path = Utils.getProperty(Utils.IMPORT_FILES_PATH_KEY);
+		String path = Utils.getConfigProperty(Utils.IMPORT_FILES_PATH_KEY);
 		String filename = path + "/" + getImportObjProperty(Utils.XML_CONTENT_FILE_ELEMENT);
 		//System.out.println("\tcontent file is: " + filename);
 		file = new File(filename);
@@ -291,7 +291,7 @@ public class ImportObj {
 
 	private void linkObj() throws Exception {
 		
-		String path = Utils.getProperty(Utils.IMPORT_REPO_PATH_KEY) + getImportObjProperty(Utils.XML_REPO_PATH_ELEMENT);
+		String path = Utils.getConfigProperty(Utils.IMPORT_REPO_PATH_KEY) + getImportObjProperty(Utils.XML_REPO_PATH_ELEMENT);
 		
 		// validate path exists (or create it)
 		Utils.validateRepoPath(path, m_session, true);

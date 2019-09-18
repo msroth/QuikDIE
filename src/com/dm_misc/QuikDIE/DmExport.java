@@ -222,32 +222,32 @@ public class DmExport {
         }
 
         // validate export path
-        if (!Utils.validateFileSystemPath(Utils.getProperty(Utils.EXPORT_PATH_KEY), true)) {
-            throw new Exception("Problem with export path: " + Utils.getProperty(Utils.EXPORT_PATH_KEY));
+        if (!Utils.validateFileSystemPath(Utils.getConfigProperty(Utils.EXPORT_PATH_KEY), true)) {
+            throw new Exception("Problem with export path: " + Utils.getConfigProperty(Utils.EXPORT_PATH_KEY));
         } else {
-            System.out.println("Export path: " + Utils.getProperty(Utils.EXPORT_PATH_KEY));
+            System.out.println("Export path: " + Utils.getConfigProperty(Utils.EXPORT_PATH_KEY));
         }
 
         // create log file
         if (!Utils.createLogFile(Utils.EXPORT_LOG_KEY)) {
-            throw new Exception("Could not create log file: " + Utils.getProperty(Utils.EXPORT_LOG_KEY));
+            throw new Exception("Could not create log file: " + Utils.getConfigProperty(Utils.EXPORT_LOG_KEY));
         } else {
-            System.out.println("Export log: " + Utils.getProperty(Utils.EXPORT_LOG_KEY));
+            System.out.println("Export log: " + Utils.getConfigProperty(Utils.EXPORT_LOG_KEY));
         }
 
         // check encrypted password
         Utils.checkPassword(Utils.OP_EXPORT);
 
         // login
-        session = DCTMBasics.logon(Utils.getProperty(Utils.EXPORT_DOCBASE_KEY), Utils.getProperty(Utils.EXPORT_USER_KEY), Utils.getProperty(Utils.EXPORT_PASSWORD_KEY));
+        session = DCTMBasics.logon(Utils.getConfigProperty(Utils.EXPORT_DOCBASE_KEY), Utils.getConfigProperty(Utils.EXPORT_USER_KEY), Utils.getConfigProperty(Utils.EXPORT_PASSWORD_KEY));
         if (session == null) {
-            throw new Exception("Could not establish session with " + Utils.getProperty(Utils.EXPORT_DOCBASE_KEY));
+            throw new Exception("Could not establish session with " + Utils.getConfigProperty(Utils.EXPORT_DOCBASE_KEY));
         } else {
-            System.out.println("Login successful:  " + Utils.getProperty(Utils.EXPORT_USER_KEY) + "@" + Utils.getProperty(Utils.EXPORT_DOCBASE_KEY));
+            System.out.println("Login successful:  " + Utils.getConfigProperty(Utils.EXPORT_USER_KEY) + "@" + Utils.getConfigProperty(Utils.EXPORT_DOCBASE_KEY));
         }
 
         // validate export query query
-        if (!validateQuery(Utils.getProperty(Utils.EXPORT_QUERY_KEY))) {
+        if (!validateQuery(Utils.getConfigProperty(Utils.EXPORT_QUERY_KEY))) {
             throw new Exception("Query must start with: SELECT R_OBJECT_ID or SELECT *");
         }
 
@@ -259,7 +259,7 @@ public class DmExport {
         Utils.writeLog("");
 
         // run export query and load into dmRecordSet object
-        IDfCollection col = DCTMBasics.runSelectQuery(Utils.getProperty(Utils.EXPORT_QUERY_KEY), session);
+        IDfCollection col = DCTMBasics.runSelectQuery(Utils.getConfigProperty(Utils.EXPORT_QUERY_KEY), session);
         dmRecordSet dmRS = new dmRecordSet(col);
         col.close();
 
@@ -277,7 +277,7 @@ public class DmExport {
             IDfTypedObject tObj = dmRS.getNextRow();
 
             // create export obj
-            ExportObj expObj = new ExportObj(tObj.getString("r_object_id"), Utils.getProperty(Utils.EXPORT_PATH_KEY), session);
+            ExportObj expObj = new ExportObj(tObj.getString("r_object_id"), Utils.getConfigProperty(Utils.EXPORT_PATH_KEY), session);
 
             // export the object and keep count of objects exported -- this is where the export happens
             objCount += expObj.exportContent();
@@ -354,7 +354,7 @@ public class DmExport {
      */
     private int exportTypeDefinitions(IDfSession session) throws Exception {
     	int count = 0;
-        String path = Utils.getProperty(Utils.EXPORT_PATH_KEY);
+        String path = Utils.getConfigProperty(Utils.EXPORT_PATH_KEY);
         String template = "<attribute name=\"%s\" type=\"%s\" size=\"%d\" repeating=\"%s\" />";
 
         for (String type : m_ObjTypeSet) {
@@ -411,7 +411,7 @@ public class DmExport {
 	 */
     private int exportACLDefinitions(IDfSession session) throws Exception {
     	int count = 0;
-    	String path = Utils.getProperty(Utils.EXPORT_PATH_KEY);
+    	String path = Utils.getConfigProperty(Utils.EXPORT_PATH_KEY);
         String attr_template = "<attribute name=\"%s\" value=\"%s\" />";
         String perm_template = "<permission accessor_name=\"%s\" accessor_permit=\"%s\" accessor_x_permit=\"%s\" permit_type=\"%s\" is_group=\"%s\" />";
         

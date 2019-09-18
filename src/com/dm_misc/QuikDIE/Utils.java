@@ -36,7 +36,7 @@ import com.documentum.fc.tools.RegistryPasswordUtils;
 
 public class Utils {
 
-    private static Properties m_properties = new Properties();
+    private static Properties m_configProperties = new Properties();
     private static PrintWriter m_log = null;
 	private static HashMap<String,String> m_importedObjectsMap= new HashMap<String,String>();
     
@@ -88,7 +88,7 @@ public class Utils {
     public static final String TYPEDEF_FILE_EXT = ".type.xml";
     public static final String ACLDEF_FILE_EXT = ".acl.xml";
     
-    // export property keys
+    // export property config keys
     public static final String EXPORT_QUERY_KEY = "export.query";
     public static final String EXPORT_USER_KEY = "export.user";
     public static final String EXPORT_PASSWORD_KEY = "export.password";
@@ -96,7 +96,7 @@ public class Utils {
     public static final String EXPORT_PATH_KEY = "export.path";
     public static final String EXPORT_LOG_KEY = "export.log";
     
-    // import property keys
+    // import property config keys
     public static final String IMPORT_USER_KEY = "import.user";
     public static final String IMPORT_PASSWORD_KEY = "import.password";
     public static final String IMPORT_DOCBASE_KEY = "import.repo";
@@ -124,8 +124,14 @@ public class Utils {
     public static final String XML_ATTR_ACCESSOR_XPERMIT = "accessor_x_permit";
     public static final String XML_ATTR_FORMAT = "format";
     public static final String XML_ATTR_CUSTOM = "custom";
+    public static final String XML_TYPE_ELEMENT = "type";
+    public static final String XML_ATTR_SUPER_TYPE = "super_type";
+    public static final String XML_ATTRIBUTES_ELEMENT = "attributes";
+    public static final String XML_ATTRIBUTE_ELEMENT = "attribute";
+    public static final String XML_ATTR_SIZE = "size";
+    public static final String XML_ATTR_REPEATING = "repeating";    
     
-    // xml templates
+    // xml templates (write strings)
     public static final String XML_PROPERTIES_TEMPLATE = "<" + XML_PROPERTIES_ELEMENT + ">\n%s</" + XML_PROPERTIES_ELEMENT + ">";
     public static final String XML_REPO_PATH_TEMPLATE = "<" + XML_REPO_PATH_ELEMENT + ">%s</" + XML_REPO_PATH_ELEMENT + ">";
     public static final String XML_CONTENT_FILE_TEMPLATE = "<" + XML_CONTENT_FILE_ELEMENT + ">%s</" + XML_CONTENT_FILE_ELEMENT + ">";
@@ -146,8 +152,8 @@ public class Utils {
             is = new FileInputStream(f);
 
             // load properties
-			m_properties.clear();
-			m_properties.load(is);
+			m_configProperties.clear();
+			m_configProperties.load(is);
 			result = true;
 			
         } catch (Exception e) {
@@ -159,10 +165,10 @@ public class Utils {
 
     
     // get any property
-    public static String getProperty(String key) {
+    public static String getConfigProperty(String key) {
 
-        if (m_properties.containsKey(key)) {
-            return m_properties.getProperty(key);
+        if (m_configProperties.containsKey(key)) {
+            return m_configProperties.getProperty(key);
         } else {
             return null;
         }
@@ -170,8 +176,8 @@ public class Utils {
 
     
     // set any property
-    public static void setProperty(String key, String value) {
-        m_properties.setProperty(key, value);
+    public static void setConfigProperty(String key, String value) {
+        m_configProperties.setProperty(key, value);
     }
 
     
@@ -187,11 +193,11 @@ public class Utils {
 
         try {
             if (op.equalsIgnoreCase(OP_EXPORT)) {
-                password = getProperty(Utils.EXPORT_PASSWORD_KEY);
+                password = getConfigProperty(Utils.EXPORT_PASSWORD_KEY);
                 propertyFile = EXPORT_PROPERTY_FILE;
                 key = EXPORT_PASSWORD_KEY;
             } else {
-                password = getProperty(Utils.IMPORT_PASSWORD_KEY);
+                password = getConfigProperty(Utils.IMPORT_PASSWORD_KEY);
                 propertyFile = IMPORT_PROPERTY_FILE;
                 key = IMPORT_PASSWORD_KEY;
             }
@@ -209,7 +215,7 @@ public class Utils {
             password = password.substring(PASSWORD_PREFIX.length());
             password = password.replace("\\", "");
             String newPassword = RegistryPasswordUtils.decrypt(password);
-            setProperty(key, newPassword);
+            setConfigProperty(key, newPassword);
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -225,14 +231,14 @@ public class Utils {
         try {
 
             // encrypt password
-            newPassword = PASSWORD_PREFIX + RegistryPasswordUtils.encrypt(getProperty(key));
+            newPassword = PASSWORD_PREFIX + RegistryPasswordUtils.encrypt(getConfigProperty(key));
             newPassword = newPassword.replace("\\", "");
 
             // this assumes the property file is in the current dir
             File file = new File(propertyFile);
-            setProperty(key, newPassword);
+            setConfigProperty(key, newPassword);
             OutputStream out = new FileOutputStream(file);
-            m_properties.store(out, "");
+            m_configProperties.store(out, "");
             
         } catch (Exception e) {
             System.out.println("\tWARNING:  unable to write encrypted password to property file " + e.getMessage());
@@ -302,7 +308,7 @@ public class Utils {
         boolean success = true;
         try {
             //validate path to log file
-            String logFile = getProperty(key);
+            String logFile = getConfigProperty(key);
             if (logFile == null || logFile.length() == 0) {
                 return false;
             }
@@ -321,7 +327,7 @@ public class Utils {
             // open file
             File log = new File(filename);
             m_log = new PrintWriter(log);
-            setProperty(key, filename);
+            setConfigProperty(key, filename);
 
         } catch (Exception e) {
             System.out.println(e.getMessage());
@@ -348,6 +354,28 @@ public class Utils {
     }
 
 
+    // run a query that returns a boolean result
+    // a light wrapper around DCTMBasics.runDQLQueryReturnSingleValue()
+    public static boolean runDQLQueryWithBooleanResult(String dql, IDfSession session) throws Exception {
+        
+    	if (dql == null || dql.length() == 0) {
+            return false;
+        }
+
+    	if (session == null) {
+    		return false;
+    	}
+    	
+        String rv = null;
+        rv = DCTMBasics.runDQLQueryReturnSingleValue(dql, session);
+
+        if (rv != null && !rv.isEmpty())
+        	return true;
+        else
+        	return false;
+    }
+    
+    
     // determine if a type exists in the repo
     public static boolean checkTypeExists(String type, IDfSession session) throws Exception {
 
@@ -392,11 +420,11 @@ public class Utils {
     public static String dumpProperties(boolean showPW) {
         StringBuilder out = new StringBuilder();
 
-        Set s = m_properties.keySet();
+        Set s = m_configProperties.keySet();
         Iterator i = s.iterator();
         while (i.hasNext()) {
             String k = (String) i.next();
-            String v = getProperty(k);
+            String v = getConfigProperty(k);
             if ((k.equalsIgnoreCase(EXPORT_PASSWORD_KEY) || (k.equalsIgnoreCase(IMPORT_PASSWORD_KEY))
                     && !showPW)) {
                 v = "********";
@@ -482,6 +510,7 @@ public class Utils {
 	public static HashMap<String, String> getImportedObjectsMap() {
 		return m_importedObjectsMap;
 	}
+	
 	
 	public static void dumpImportedObjsMap() {
 		System.out.println("Imported objects r_object_id map");

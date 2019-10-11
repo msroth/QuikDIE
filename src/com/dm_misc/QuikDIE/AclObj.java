@@ -9,11 +9,15 @@ package com.dm_misc.QuikDIE;
 
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Properties;
 
 import org.jdom2.Document;
 import org.jdom2.Element;
+import org.jdom2.Attribute;
 import org.jdom2.input.SAXBuilder;
+import org.xml.sax.Attributes;
 
 import com.documentum.fc.client.DfPermit;
 import com.documentum.fc.client.IDfACL;
@@ -26,6 +30,10 @@ public class AclObj {
 	private File m_metadataFile = null;
 	private IDfSession m_session = null;
 	private String m_errorMsg = "";
+	
+	private Properties m_AclObjProps = new Properties();
+	private Properties m_AclAttrsProps = new Properties();
+	private ArrayList<String> m_Permissions = new ArrayList<String>();
 	
 	public AclObj(String metadatafile, IDfSession session) {
 		String attrTemplate = "%s %s(%s) %s,";
@@ -41,23 +49,42 @@ public class AclObj {
 			m_metadataFile = new File(metadatafile);
 			readMetadataFile();
 	
-
-			IDfACL acl = (IDfACL) session.newObject("dm_acl");
+			// create new ACL obj
+			IDfACL acl = (IDfACL) m_session.newObject("dm_acl");
 			if (acl != null) {
-				acl.setObjectName(aclName);
-				acl.setDescription(description);
+				acl.setObjectName(getAclObjProperty(Utils.XML_ATTR_NAME));
+				acl.setDomain(getAclObjProperty(Utils.XML_ATTR_DOMAIN));
+				acl.setACLClass(Integer.parseInt(getAclObjProperty(Utils.XML_ATTR_CLASS)));
+				acl.setDescription(getAclObjProperty("description"));
+				acl.save();
+				
+				
+				for (int i=0; i < m_Permissions.size(); i++) {
+					String[] permission = m_Permissions.get(i).split(":");
+					
+					// basic permits
+					IDfPermit permit = new DfPermit();
+					permit.setAccessorName(permission[0]);
+					permit.setPermitType(Integer.parseInt(permission[3]));
+					permit.setPermitValue(permission[1]);
+					acl.grantPermit(permit);
+					
+					// extended permits
+//					permit = new DfPermit();
+//					permit.setAccessorName(permission[0]);
+//					permit.setPermitType(IDfPermit.DF_EXTENDED_PERMIT);
+//					permit.setPermitValue(permission[2]);
+//					acl.grantPermit(permit);
+					acl.grant(permission[0], Integer.parseInt(permission[1]),  permission[2]);
+				}
 				acl.save();
 			}
 			
-			// loop over values
-			IDfPermit permit = new DfPermit();
-			if (permit != null) {
-				permit.setAccessorName("Bhuwan User");
-				permit.setPermitType(IDfPermit.DF_ACCESS_PERMIT);
-				permit.setPermitValue(IDfACL.DF_PERMIT_READ_STR);
-				acl.grantPermit(permit);
-				acl.save();
-			}
+
+			
+			
+		} catch (Exception e) {
+			e.printStackTrace();
 		}
 	}
 	
@@ -72,32 +99,51 @@ public class AclObj {
 			Doc = builder.build(m_metadataFile);
 			Element root = Doc.getRootElement();
 
-			// get type name
-			setTypeObjProperty(Utils.XML_ATTR_NAME, root.getAttributeValue(Utils.XML_ATTR_NAME));
+			// get name
+			setAclObjProperty(Utils.XML_ATTR_NAME, root.getAttributeValue(Utils.XML_ATTR_NAME));
 			
-			// get super type
-			setTypeObjProperty(Utils.XML_ATTR_SUPER_TYPE, root.getAttributeValue(Utils.XML_ATTR_SUPER_TYPE));
+			// get domain
+			setAclObjProperty(Utils.XML_ATTR_DOMAIN, root.getAttributeValue(Utils.XML_ATTR_DOMAIN));
+			
+//			// get global value
+//			setAclObjProperty(Utils.XML_ATTR_GLOBAL, root.getAttributeValue(Utils.XML_ATTR_GLOBAL));
+//			
+//			// get class value
+//			setAclObjProperty(Utils.XML_ATTR_CLASS, root.getAttributeValue(Utils.XML_ATTR_CLASS));
 						
 			// loop over child elements
 			List<Element> xml_elements = root.getChildren();
 			for(int i=0 ; i < xml_elements.size(); i++) {
 				Element element = xml_elements.get(i);
 
-				// find attributes element
-				if (element.getName().equalsIgnoreCase(Utils.XML_ATTRIBUTES_ELEMENT)) {
+				// find properties element
+				if (element.getName().equalsIgnoreCase("properties")) {
+					List<Element> properties = element.getChildren();
+					
+					// loop over all properties
+					for(int j=0 ; j < properties.size(); j++) {
+						Element property = properties.get(j);
+						List<Attribute> attrs = property.getAttributes();
+						setAclObjProperty(attrs.get(0).getValue(), attrs.get(1).getValue());
+					}
+				}
+				
+				// get permit info
+				if (element.getName().equalsIgnoreCase(Utils.XML_PERMISSIONS_ELEMENT)) {
 					List<Element> properties = element.getChildren();
 					
 					// loop over all attributes
 					for(int j=0 ; j < properties.size(); j++) {
-						
 						Element property = properties.get(j);
-						String attr = property.getAttributeValue(Utils.XML_ATTR_NAME);
-						String attr_type = property.getAttributeValue(Utils.XML_ATTR_TYPE);
-						String attr_size = property.getAttributeValue(Utils.XML_ATTR_SIZE);
-						boolean is_repeating = Boolean.valueOf(property.getAttributeValue(Utils.XML_ATTR_REPEATING));
 						
-						// set info in properties
-						setTypeAttrProperty(attr, attr_type + ":" + attr_size + ":" + is_repeating);		
+						// dm_world:3:CHANGE_LOCATION, EXECUTE_PROCEDURE:0:false
+						String perms = property.getAttributeValue("accessor_name");
+						perms += ":" + property.getAttributeValue("accessor_permit");
+						perms += ":" + property.getAttributeValue("accessor_x_permit");
+						// perms += ":" + property.getAttributeValue("accessor_x_permit_value");
+						perms += ":" + property.getAttributeValue("permit_type");
+						perms += ":" + property.getAttributeValue("is_group");
+						m_Permissions.add(perms);
 					}
 				}
 			}
@@ -108,15 +154,26 @@ public class AclObj {
 	
 	
 	private String getAclObjProperty(String key) {
-		if (m_typeObjProps.containsKey(key))
-			return m_typeObjProps.getProperty(key);
+		if (m_AclObjProps.containsKey(key))
+			return m_AclObjProps.getProperty(key);
 		else
 			return null;
 	}
 	
+	private String getAclAttrProperty(String key) {
+		if (m_AclAttrsProps.containsKey(key))
+			return m_AclAttrsProps.getProperty(key);
+		else
+			return null;
+	}
+	
+	private void setAclObjProperty(String key, String value) {
+		m_AclObjProps.setProperty(key, value);
+	}
+	
 	
 	private void setAclAttrProperty(String key, String value) {
-		m_typeAttrsProps.setProperty(key, value);
+		m_AclAttrsProps.setProperty(key, value);
 	}
 	
 	

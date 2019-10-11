@@ -119,7 +119,7 @@ public class DmImport {
 		
 		// do acl defs
 		ArrayList<String> aclList = Utils.getXMLFilesToImport(Utils.getConfigProperty(Utils.IMPORT_FILES_PATH_KEY),Utils.ACLDEF_FILE_EXT);
-		// TODO - doCreateACLs(aclList,session);
+		doCreateACLs(aclList, session);
 		objCount += aclList.size(); 
 
 		// do folders
@@ -163,6 +163,8 @@ public class DmImport {
     		try {
 
     			// creation of the ImportObj causes the import to happen
+    			// TODO - there should be an explicit call to the iObj to execute the import
+    			// similar to how export works
     			ImportObj iObj = new ImportObj(f, session);
     			if (iObj.success()) {
 
@@ -326,7 +328,9 @@ public class DmImport {
     			Path p = Paths.get(a);
     			String aclName = p.getFileName().toString();
     			aclName = aclName.replace(Utils.ACLDEF_FILE_EXT, "");
-
+    			String aclDomain = aclName.split("--")[0];
+    			aclName = aclName.split("--")[1];
+    			
     			if (Utils.checkACLExists(aclDomain, aclName, session)) {
     				System.out.println(String.format(existTemplate, aclName));
     			} else {

@@ -130,6 +130,9 @@ public class Utils {
     public static final String XML_ATTRIBUTE_ELEMENT = "attribute";
     public static final String XML_ATTR_SIZE = "size";
     public static final String XML_ATTR_REPEATING = "repeating";    
+    public static final String XML_ATTR_DOMAIN = "domain";
+    public static final String XML_ATTR_GLOBAL = "global";
+    public static final String XML_ATTR_CLASS = "class";
     
     // xml templates (write strings)
     public static final String XML_PROPERTIES_TEMPLATE = "<" + XML_PROPERTIES_ELEMENT + ">\n%s</" + XML_PROPERTIES_ELEMENT + ">";

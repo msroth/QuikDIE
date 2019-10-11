@@ -412,8 +412,8 @@ public class DmExport {
     private int exportACLDefinitions(IDfSession session) throws Exception {
     	int count = 0;
     	String path = Utils.getConfigProperty(Utils.EXPORT_PATH_KEY);
-        String attr_template = "<attribute name=\"%s\" value=\"%s\" />";
-        String perm_template = "<permission accessor_name=\"%s\" accessor_permit=\"%s\" accessor_x_permit=\"%s\" permit_type=\"%s\" is_group=\"%s\" />";
+        String attr_template = "<property name=\"%s\" value=\"%s\" />";
+        String perm_template = "<permission accessor_name=\"%s\" accessor_permit=\"%s\" accessor_x_permit=\"%s\" accessor_x_permit_value=\"%s\" permit_type=\"%s\" is_group=\"%s\" />";
         
 
         for (String acl : m_CustomACLSet) {
@@ -423,7 +423,7 @@ public class DmExport {
         	String acl_domain = acl.split(":")[0];
         	String acl_name = acl.split(":")[1];
         	
-            String filename = acl_domain + "-" + acl_name + Utils.ACLDEF_FILE_EXT;
+            String filename = acl_domain + "--" + acl_name + Utils.ACLDEF_FILE_EXT;
             System.out.println("ACL definition: " + acl_domain + ":" + acl_name + " ==> " + filename);
             Utils.writeLog("ACL definition: " + acl_domain + ":" + acl_name + " ==> " + filename);
 
@@ -451,21 +451,22 @@ public class DmExport {
             try {
                 // write xml file header
                 xmlFile.println(Utils.XML_HEADER);
-                xmlFile.print("<acl name=\"" + aclObj.getObjectName() + "\" domain=\"" + aclObj.getDomain() + "\" ");
-                xmlFile.println("global=\"" + Boolean.toString(aclObj.isGloballyManaged()) + "\" class=\"" + aclObj.getACLClass() + "\" >");
+                xmlFile.println("<acl r_object_id=\"" + aclObj.getObjectId().toString() + "\" name=\"" + aclObj.getObjectName() + "\" domain=\"" + aclObj.getDomain() + "\" >");
                 
                 // write general attrs
-                xmlFile.println("<attributes>");
-                xmlFile.println(String.format(attr_template, Utils.ATTR_OBJ_ID, aclObj.getObjectId().toString()));
+                xmlFile.println("<properties>");
+                xmlFile.println(String.format(attr_template, "global", Boolean.toString(aclObj.isGloballyManaged())));
+                xmlFile.println(String.format(attr_template, "class", aclObj.getACLClass()));
                 xmlFile.println(String.format(attr_template, "template_name", template_name));
                 xmlFile.println(String.format(attr_template, "alias_set_name", alias_set_name));
-                xmlFile.println("</attributes>");
+                xmlFile.println(String.format(attr_template, "description", aclObj.getDescription()));
+                xmlFile.println("</properties>");
                 
                 // write permission sets
                 xmlFile.println("<permissions>");
                 for (int i=0; i < aclObj.getAccessorCount(); i++) {
                 	xmlFile.println(String.format(perm_template, aclObj.getAccessorName(i), aclObj.getAccessorPermit(i), aclObj.getAccessorXPermitNames(i), 
-                			aclObj.getAccessorPermitType(i), Boolean.toString(aclObj.isGroup(i))));
+                			aclObj.getAccessorXPermit(i), aclObj.getAccessorPermitType(i), Boolean.toString(aclObj.isGroup(i))));
                 }
                 xmlFile.println("</permissions>");
                 

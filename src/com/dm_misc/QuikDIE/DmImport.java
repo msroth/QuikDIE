@@ -70,16 +70,16 @@ public class DmImport {
 			throw new Exception("Could not load configuration");
 
 		// validate import path
-		if (!Utils.validateFileSystemPath(Utils.getConfigProperty(Utils.IMPORT_FILES_PATH_KEY),false))
-			throw new Exception("Problem with import source path: " + Utils.getConfigProperty(Utils.IMPORT_FILES_PATH_KEY));
+		if (!Utils.validateFileSystemPath(Utils.getConfigProperty(Utils.IMPORT_KEY_FILES_PATH),false))
+			throw new Exception("Problem with import source path: " + Utils.getConfigProperty(Utils.IMPORT_KEY_FILES_PATH));
 		else
-			System.out.println("Import source path: " + Utils.getConfigProperty(Utils.IMPORT_FILES_PATH_KEY));
+			System.out.println("Import source path: " + Utils.getConfigProperty(Utils.IMPORT_KEY_FILES_PATH));
 
 		// create log file
-		if (!Utils.createLogFile(Utils.IMPORT_LOG_KEY))
-			throw new Exception("Could not create log file: " + Utils.getConfigProperty(Utils.IMPORT_LOG_KEY));
+		if (!Utils.createLogFile(Utils.IMPORT_KEY_LOG))
+			throw new Exception("Could not create log file: " + Utils.getConfigProperty(Utils.IMPORT_KEY_LOG));
 		else
-			System.out.println("Import log: " + Utils.getConfigProperty(Utils.IMPORT_LOG_KEY));
+			System.out.println("Import log: " + Utils.getConfigProperty(Utils.IMPORT_KEY_LOG));
 
 //		// create error path
 //		if (!Utils.validateFileSystemPath(Utils.getProperty(Utils.IMPORT_ERRORS_PATH),true))
@@ -91,44 +91,44 @@ public class DmImport {
 		Utils.checkPassword(Utils.OP_IMPORT);
 
 		// login
-		session = DCTMBasics.logon(Utils.getConfigProperty(Utils.IMPORT_DOCBASE_KEY), Utils.getConfigProperty(Utils.IMPORT_USER_KEY), Utils.getConfigProperty(Utils.IMPORT_PASSWORD_KEY));
+		session = DCTMBasics.logon(Utils.getConfigProperty(Utils.IMPORT_KEY_DOCBASE), Utils.getConfigProperty(Utils.IMPORT_KEY_USER), Utils.getConfigProperty(Utils.IMPORT_KEY_PASSWORD));
 		if (session == null)
-			throw new Exception("Could not establish session with " + Utils.getConfigProperty(Utils.IMPORT_DOCBASE_KEY));
+			throw new Exception("Could not establish session with " + Utils.getConfigProperty(Utils.IMPORT_KEY_DOCBASE));
 		else
-			System.out.println("Login successful:  " + Utils.getConfigProperty(Utils.IMPORT_USER_KEY) + "@" + Utils.getConfigProperty(Utils.IMPORT_DOCBASE_KEY));
+			System.out.println("Login successful:  " + Utils.getConfigProperty(Utils.IMPORT_KEY_USER) + "@" + Utils.getConfigProperty(Utils.IMPORT_KEY_DOCBASE));
 
 		// validate repo path
-		if (!Boolean.parseBoolean(Utils.getConfigProperty(Utils.IMPORT_USE_EXPORT_REPO_ATTRS_KEY))) {
-			if (Utils.getConfigProperty(Utils.IMPORT_REPO_PATH_KEY).length() > 0) {
-				if (!Utils.validateRepoPath(Utils.getConfigProperty(Utils.IMPORT_REPO_PATH_KEY),session,true))
-					throw new Exception("Problem with import repo path: " + Utils.getConfigProperty(Utils.IMPORT_REPO_PATH_KEY));
+		if (!Boolean.parseBoolean(Utils.getConfigProperty(Utils.IMPORT_KEY_USE_EXPORT_REPO_ATTRS))) {
+			if (Utils.getConfigProperty(Utils.IMPORT_KEY_REPO_PATH).length() > 0) {
+				if (!Utils.validateRepoPath(Utils.getConfigProperty(Utils.IMPORT_KEY_REPO_PATH),session,true))
+					throw new Exception("Problem with import repo path: " + Utils.getConfigProperty(Utils.IMPORT_KEY_REPO_PATH));
 				else
-					System.out.println("Import repo path: " + Utils.getConfigProperty(Utils.IMPORT_REPO_PATH_KEY));
+					System.out.println("Import repo path: " + Utils.getConfigProperty(Utils.IMPORT_KEY_REPO_PATH));
 			} else {
 				System.out.println("No import path specified; will use export paths in metadata files.");
-				Utils.setConfigProperty(Utils.IMPORT_USE_EXPORT_REPO_ATTRS_KEY, "true");
+				Utils.setConfigProperty(Utils.IMPORT_KEY_USE_EXPORT_REPO_ATTRS, "true");
 			}
 					
 		}
 		System.out.println();
 		
 		// do type defs
-		ArrayList<String> typeList = Utils.getXMLFilesToImport(Utils.getConfigProperty(Utils.IMPORT_FILES_PATH_KEY),Utils.TYPEDEF_FILE_EXT);
+		ArrayList<String> typeList = Utils.getXMLFilesToImport(Utils.getConfigProperty(Utils.IMPORT_KEY_FILES_PATH),Utils.FILE_EXT_TYPEDEF);
 		doCreateTypes(typeList, session);
 		objCount += typeList.size();
 		
 		// do acl defs
-		ArrayList<String> aclList = Utils.getXMLFilesToImport(Utils.getConfigProperty(Utils.IMPORT_FILES_PATH_KEY),Utils.ACLDEF_FILE_EXT);
+		ArrayList<String> aclList = Utils.getXMLFilesToImport(Utils.getConfigProperty(Utils.IMPORT_KEY_FILES_PATH),Utils.FILE_EXT_ACLDEF);
 		doCreateACLs(aclList, session);
 		objCount += aclList.size(); 
 
 		// do folders
-		ArrayList<String> folderList = Utils.getXMLFilesToImport(Utils.getConfigProperty(Utils.IMPORT_FILES_PATH_KEY),Utils.FOLDER_FILE_EXT);
+		ArrayList<String> folderList = Utils.getXMLFilesToImport(Utils.getConfigProperty(Utils.IMPORT_KEY_FILES_PATH),Utils.FILE_EXT_FOLDER);
 		doImport(folderList, Utils.IMPORT_TYPE_FOLDER, session);
 		objCount += folderList.size();
 		
 		// do content objects
-		ArrayList<String> docList = Utils.getXMLFilesToImport(Utils.getConfigProperty(Utils.IMPORT_FILES_PATH_KEY),Utils.METADATA_FILE_EXT);
+		ArrayList<String> docList = Utils.getXMLFilesToImport(Utils.getConfigProperty(Utils.IMPORT_KEY_FILES_PATH),Utils.FILE_EXT_METADATA);
 		doImport(docList, Utils.IMPORT_TYPE_CONTENT, session);
 		objCount += docList.size();
 		
@@ -144,10 +144,7 @@ public class DmImport {
 		
 		System.out.println("\n\n");
 		Utils.dumpImportedObjsMap();
-		
-		
-		
-		
+			
 	}
 
 	
@@ -210,7 +207,7 @@ public class DmImport {
     							System.out.println("\tAttached virtual document child: " + fullObjPath + " | " + child.getObjectId().toString());
     							Utils.writeLog("\tAttached virtual document child: " + fullObjPath + " | " + child.getObjectId().toString());;
     						} else {
-    							String xmlFile = Utils.getConfigProperty(Utils.IMPORT_FILES_PATH_KEY) + "\\" + id	+ Utils.METADATA_FILE_EXT;
+    							String xmlFile = Utils.getConfigProperty(Utils.IMPORT_KEY_FILES_PATH) + "\\" + id	+ Utils.FILE_EXT_METADATA;
 
     							// this should create new obj in docbase
     							ImportObj vdcObj = new ImportObj(xmlFile, session);
@@ -242,7 +239,7 @@ public class DmImport {
     				Set<String> rendIds = renditions.stringPropertyNames();
     				if (!rendIds.isEmpty()) {
     					for (String format : rendIds) {
-    						String file = Utils.getConfigProperty(Utils.IMPORT_FILES_PATH_KEY) + "\\" + renditions.getProperty(format);
+    						String file = Utils.getConfigProperty(Utils.IMPORT_KEY_FILES_PATH) + "\\" + renditions.getProperty(format);
     						iObj.getSysObject().addRendition(file, format);
     						System.out.println("\tSetting rendition: " + format);
     						Utils.writeLog("\tSetting rendition: " + format);
@@ -280,7 +277,7 @@ public class DmImport {
     			// extract type name from file name
     			Path p = Paths.get(t);
     			String typeName = p.getFileName().toString();
-    			typeName = typeName.replace(Utils.TYPEDEF_FILE_EXT, "");
+    			typeName = typeName.replace(Utils.FILE_EXT_TYPEDEF, "");
     			
     			if (Utils.checkTypeExists(typeName, session)) {
     				System.out.println(String.format(existTemplate, typeName));
@@ -327,7 +324,7 @@ public class DmImport {
     			// extract acl name from file name
     			Path p = Paths.get(a);
     			String aclName = p.getFileName().toString();
-    			aclName = aclName.replace(Utils.ACLDEF_FILE_EXT, "");
+    			aclName = aclName.replace(Utils.FILE_EXT_ACLDEF, "");
     			String aclDomain = aclName.split("--")[0];
     			aclName = aclName.split("--")[1];
     			

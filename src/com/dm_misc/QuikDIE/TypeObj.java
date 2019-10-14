@@ -61,7 +61,7 @@ public class TypeObj {
 			
 			// clobber the last "," added
 			typeQuery.setLength(typeQuery.length() - 1);
-			typeQuery.append(") with supertype \"" + getTypeObjProperty(Utils.ATTR_OBJ_SUPER_TYPE) + "\" publish");
+			typeQuery.append(") with supertype \"" + getTypeObjProperty(Utils.OBJ_ATTR_SUPER_TYPE) + "\" publish");
 			
 			// create type via DQL
 			boolean rv = Utils.runDQLQueryWithBooleanResult(typeQuery.toString(), m_session);
@@ -99,7 +99,7 @@ public class TypeObj {
 				Element element = xml_elements.get(i);
 
 				// find attributes element
-				if (element.getName().equalsIgnoreCase(Utils.XML_ATTRIBUTES_ELEMENT)) {
+				if (element.getName().equalsIgnoreCase(Utils.XML_ELEMENT_ATTRIBUTES)) {
 					List<Element> properties = element.getChildren();
 					
 					// loop over all attributes

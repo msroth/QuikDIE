@@ -129,7 +129,7 @@ public class AclObj {
 				}
 				
 				// get permit info
-				if (element.getName().equalsIgnoreCase(Utils.XML_PERMISSIONS_ELEMENT)) {
+				if (element.getName().equalsIgnoreCase(Utils.XML_ELEMENT_PERMISSIONS)) {
 					List<Element> properties = element.getChildren();
 					
 					// loop over all attributes

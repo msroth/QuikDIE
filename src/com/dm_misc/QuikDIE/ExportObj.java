@@ -209,9 +209,9 @@ public class ExportObj {
 
         // figure out file suffix and build metadata file name
         if (DCTMBasics.isFolder(m_sObj)) {
-            filename = Utils.FOLDER_FILE_EXT;
+            filename = Utils.FILE_EXT_FOLDER;
         } else {
-            filename = Utils.METADATA_FILE_EXT;
+            filename = Utils.FILE_EXT_METADATA;
         }
         filename = m_sObj.getObjectId().toString() + filename;
 
@@ -226,33 +226,33 @@ public class ExportObj {
         // output metadata XML file
         try {
             xmlFile.println(Utils.XML_HEADER);
-            xmlFile.println(String.format(Utils.XML_OBJECT_OPEN_TEMPLATE, m_sObj.getObjectId().toString(), 
+            xmlFile.println(String.format(Utils.XML_TEMPLATE_OBJECT_OPEN, m_sObj.getObjectId().toString(), 
             		m_sObj.getTypeName(), Boolean.toString(hasContent()),  Boolean.toString(isVirtualDoc())));
 
             // save repo path
-            xmlFile.println(String.format(Utils.XML_REPO_PATH_TEMPLATE, Utils.getObjectPath(m_sObj, m_session)));
+            xmlFile.println(String.format(Utils.XML_TEMPLATE_REPO_PATH, Utils.getObjectPath(m_sObj, m_session)));
 
             // save content file name
             if (hasContent()) {
-                xmlFile.println(String.format(Utils.XML_CONTENT_FILE_TEMPLATE, getObjectId() + "." + getDOSExt()));
+                xmlFile.println(String.format(Utils.XML_TEMPLATE_CONTENT_FILE, getObjectId() + "." + getDOSExt()));
             }
             
             // get property values
-            xmlFile.println(String.format(Utils.XML_PROPERTIES_TEMPLATE, buildAttrExportString()));
+            xmlFile.println(String.format(Utils.XML_TEMPLATE_PROPERTIES, buildAttrExportString()));
 
             // v1.7
             // get ACL values
-            xmlFile.println(String.format(Utils.XML_PERMISSIONS_TEMPLATE, buildAccessExportString()));
+            xmlFile.println(String.format(Utils.XML_TEMPLATE_PERMISSIONS, buildAccessExportString()));
 
             // export VD children
             if (isVirtualDoc()) {
-                xmlFile.println(String.format(Utils.XML_VD_CHILDREN_TEMPLATE, buildVDAttrString()));
+                xmlFile.println(String.format(Utils.XML_TEMPLATE_VD_CHILDREN, buildVDAttrString()));
             }
 
             // v1.6
             // export rendition formats
             if (hasRenditions()) {
-            	xmlFile.println(String.format(Utils.XML_RENDITIONS_TEMPLATE, buildRenditionAttrString()));
+            	xmlFile.println(String.format(Utils.XML_TEMPLATE_RENDITIONS, buildRenditionAttrString()));
             }
             
             // close xml file
@@ -277,29 +277,29 @@ public class ExportObj {
         StringBuilder sb = new StringBuilder();
         // v1.7
         // added 'custom' tag to element
-        String template = "<" + Utils.XML_PROPERTY_ELEMENT + " name=\"%s\" type=\"%s\" custom=\"%s\">%s</" + Utils.XML_PROPERTY_ELEMENT + ">\n";
+        String template = "<" + Utils.XML_ELEMENT_PROPERTY + " name=\"%s\" type=\"%s\" custom=\"%s\">%s</" + Utils.XML_ELEMENT_PROPERTY + ">\n";
 
         // basic attrs
         // v1.7
         // moved r_object_type to object element
         //sb.append(String.format(template, Utils.ATTR_OBJ_TYPE, "string", "false", m_sObj.getType().getName()));
-        sb.append(String.format(template, Utils.ATTR_OBJ_NAME, "string", "false", Utils.cleanXML(m_sObj.getObjectName())));
-        sb.append(String.format(template, Utils.ATTR_OBJ_TITLE, "string", "false", Utils.cleanXML(m_sObj.getTitle())));
-        sb.append(String.format(template, Utils.ATTR_OBJ_SUBJECT, "string", "false", Utils.cleanXML(m_sObj.getSubject())));
-        sb.append(String.format(template, Utils.ATTR_OBJ_ACL_DOMAIN, "string", "false", m_sObj.getACLDomain()));
-        sb.append(String.format(template, Utils.ATTR_OBJ_ACL_NAME, "string", "false", m_sObj.getACLName()));
-        sb.append(String.format(template, Utils.ATTR_OBJ_OWNER, "string", "false", m_sObj.getOwnerName()));
-        sb.append(String.format(template, Utils.ATTR_OBJ_VERSION, "string", "false", m_sObj.getVersionLabels().getImplicitVersionLabel()));
-        sb.append(String.format(template, Utils.ATTR_OBJ_CREATOR, "string", "false", m_sObj.getCreatorName()));
-        sb.append(String.format(template, Utils.ATTR_OBJ_CREATE_DATE, "string", "false", m_sObj.getCreationDate().asString("yyyy-MM-dd HH:mm:ss")));
-        sb.append(String.format(template, Utils.ATTR_OBJ_MODIFIER, "string", "false", m_sObj.getModifier()));
-        sb.append(String.format(template, Utils.ATTR_OBJ_MODIFY_DATE, "string", "false", m_sObj.getModifyDate().asString("yyyy-MM-dd HH:mm:ss")));
+        sb.append(String.format(template, Utils.OBJ_ATTR_NAME, "string", "false", Utils.cleanXML(m_sObj.getObjectName())));
+        sb.append(String.format(template, Utils.OBJ_ATTR_TITLE, "string", "false", Utils.cleanXML(m_sObj.getTitle())));
+        sb.append(String.format(template, Utils.OBJ_ATTR_SUBJECT, "string", "false", Utils.cleanXML(m_sObj.getSubject())));
+        sb.append(String.format(template, Utils.OBJ_ATTR_ACL_DOMAIN, "string", "false", m_sObj.getACLDomain()));
+        sb.append(String.format(template, Utils.OBJ_ATTR_ACL_NAME, "string", "false", m_sObj.getACLName()));
+        sb.append(String.format(template, Utils.OBJ_ATTR_OWNER, "string", "false", m_sObj.getOwnerName()));
+        sb.append(String.format(template, Utils.OBJ_ATTR_VERSION, "string", "false", m_sObj.getVersionLabels().getImplicitVersionLabel()));
+        sb.append(String.format(template, Utils.OBJ_ATTR_CREATOR, "string", "false", m_sObj.getCreatorName()));
+        sb.append(String.format(template, Utils.OBJ_ATTR_CREATE_DATE, "string", "false", m_sObj.getCreationDate().asString("yyyy-MM-dd HH:mm:ss")));
+        sb.append(String.format(template, Utils.OBJ_ATTR_MODIFIER, "string", "false", m_sObj.getModifier()));
+        sb.append(String.format(template, Utils.OBJ_ATTR_MODIFY_DATE, "string", "false", m_sObj.getModifyDate().asString("yyyy-MM-dd HH:mm:ss")));
         
         // get content specific attrs
         if (!DCTMBasics.isFolder(m_sObj)) {
-            sb.append(String.format(template, Utils.ATTR_OBJ_CONTENT_TYPE, "string", "false", m_contentType));
-	        sb.append(String.format(template, Utils.ATTR_OBJ_CHRONICLE_ID, "string", "false", m_sObj.getChronicleId().toString()));
-	        sb.append(String.format(template, Utils.ATTR_OBJ_ANTECEDENT_ID, "string", "false", m_sObj.getAntecedentId().toString()));
+            sb.append(String.format(template, Utils.OBJ_ATTR_CONTENT_TYPE, "string", "false", m_contentType));
+	        sb.append(String.format(template, Utils.OBJ_ATTR_CHRONICLE_ID, "string", "false", m_sObj.getChronicleId().toString()));
+	        sb.append(String.format(template, Utils.OBJ_ATTR_ANTECEDENT_ID, "string", "false", m_sObj.getAntecedentId().toString()));
         }
 
         // get type obj

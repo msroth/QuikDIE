@@ -18,20 +18,15 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Properties;
-import java.util.Set;
 
 import org.apache.commons.lang.StringEscapeUtils;
 
 import com.dm_misc.dctm.DCTMBasics;
 import com.documentum.fc.client.IDfFolder;
 import com.documentum.fc.client.IDfSession;
-import com.documentum.fc.client.IDfSessionManager;
 import com.documentum.fc.client.IDfSysObject;
-import com.documentum.fc.common.DfLoginInfo;
 import com.documentum.fc.common.IDfId;
-import com.documentum.fc.common.IDfLoginInfo;
 import com.documentum.fc.tools.RegistryPasswordUtils;
 
 public class Utils {
@@ -48,7 +43,7 @@ public class Utils {
     public static final String APP_BANNER = "QuikDIE - A Quick Documentum Import/Export Utility ";
     public static final String COPYRIGHT = "(c) 2013-2019 MS Roth";
     public static final String[] OMIT_OBJ_PREFIXES = {"dm", "d2", "c2", "c6", "x3", "o2", "dmi", "dmr", "dmc"};
-    public static final String[] SKIP_IMPORT_ATTRS = {"r_object_id", "r_version_label", "r_creation_date", "r_modify_date", "i_chornicle_id", "a_antecedent_id"};
+    public static final String[] SKIP_IMPORT_ATTRS = {"r_object_id", "r_version_label", "r_creation_date", "r_modify_date", "i_chronicle_id", "a_antecedent_id"};
     
     // export app properties
     public static final String EXPORT_PROPERTY_FILE = "export.properties";
@@ -62,63 +57,63 @@ public class Utils {
     public static final String IMPORT_VERSION = "0.1";
     
     // dctm attr constants
-    public static final String ATTR_OBJ_ID = "r_object_id";
-    public static final String ATTR_OBJ_NAME = "object_name";
-    public static final String ATTR_OBJ_TYPE = "r_object_type";
-    public static final String ATTR_OBJ_VERSION = "r_version_label";
-    public static final String ATTR_OBJ_HAS_CONTENT = "content";
-    public static final String ATTR_OBJ_TITLE = "title";
-    public static final String ATTR_OBJ_SUBJECT = "subject";
-    public static final String ATTR_OBJ_ACL_DOMAIN = "acl_domain";
-    public static final String ATTR_OBJ_ACL_NAME = "acl_name";
-    public static final String ATTR_OBJ_OWNER = "owner_name";
-    public static final String ATTR_OBJ_CONTENT_TYPE = "a_content_type";
-    public static final String ATTR_OBJ_SUPER_TYPE = "super_type";
-    public static final String ATTR_OBJ_CHRONICLE_ID = "i_chronicle_id";
-    public static final String ATTR_OBJ_ANTECEDENT_ID = "a_antecedent_id";
-    public static final String ATTR_OBJ_CREATOR = "r_creator_name";
-    public static final String ATTR_OBJ_CREATE_DATE = "r_creation_date";
-    public static final String ATTR_OBJ_MODIFIER = "r_modifier";
-    public static final String ATTR_OBJ_MODIFY_DATE = "r_modify_date";
-    public static final String ATTR_OBJ_VIRTUAL_DOC = "virtdoc";
+    public static final String OBJ_ATTR_ID = "r_object_id";
+    public static final String OBJ_ATTR_NAME = "object_name";
+    public static final String OBJ_ATTR_TYPE = "r_object_type";
+    public static final String OBJ_ATTR_VERSION = "r_version_label";
+    public static final String OBJ_ATTR_HAS_CONTENT = "content";
+    public static final String OBJ_ATTR_TITLE = "title";
+    public static final String OBJ_ATTR_SUBJECT = "subject";
+    public static final String OBJ_ATTR_ACL_DOMAIN = "acl_domain";
+    public static final String OBJ_ATTR_ACL_NAME = "acl_name";
+    public static final String OBJ_ATTR_OWNER = "owner_name";
+    public static final String OBJ_ATTR_CONTENT_TYPE = "a_content_type";
+    public static final String OBJ_ATTR_SUPER_TYPE = "super_type";
+    public static final String OBJ_ATTR_CHRONICLE_ID = "i_chronicle_id";
+    public static final String OBJ_ATTR_ANTECEDENT_ID = "a_antecedent_id";
+    public static final String OBJ_ATTR_CREATOR = "r_creator_name";
+    public static final String OBJ_ATTR_CREATE_DATE = "r_creation_date";
+    public static final String OBJ_ATTR_MODIFIER = "r_modifier";
+    public static final String OBJ_ATTR_MODIFY_DATE = "r_modify_date";
+    public static final String OBJ_ATTR_VIRTUAL_DOC = "virtdoc";
     
     // file extensions
-    public static final String METADATA_FILE_EXT = ".metadata.xml";
-    public static final String FOLDER_FILE_EXT = ".folder.xml";
-    public static final String TYPEDEF_FILE_EXT = ".type.xml";
-    public static final String ACLDEF_FILE_EXT = ".acl.xml";
+    public static final String FILE_EXT_METADATA = ".metadata.xml";
+    public static final String FILE_EXT_FOLDER = ".folder.xml";
+    public static final String FILE_EXT_TYPEDEF = ".type.xml";
+    public static final String FILE_EXT_ACLDEF = ".acl.xml";
     
     // export property config keys
-    public static final String EXPORT_QUERY_KEY = "export.query";
-    public static final String EXPORT_USER_KEY = "export.user";
-    public static final String EXPORT_PASSWORD_KEY = "export.password";
-    public static final String EXPORT_DOCBASE_KEY = "export.repo";
-    public static final String EXPORT_PATH_KEY = "export.path";
-    public static final String EXPORT_LOG_KEY = "export.log";
+    public static final String EXPORT_KEY_QUERY = "export.query";
+    public static final String EXPORT_KEY_USER = "export.user";
+    public static final String EXPORT_KEY_PASSWORD = "export.password";
+    public static final String EXPORT_KEY_DOCBASE = "export.repo";
+    public static final String EXPORT_KEY_PATH = "export.path";
+    public static final String EXPORT_KEY_LOG = "export.log";
     
     // import property config keys
-    public static final String IMPORT_USER_KEY = "import.user";
-    public static final String IMPORT_PASSWORD_KEY = "import.password";
-    public static final String IMPORT_DOCBASE_KEY = "import.repo";
-    public static final String IMPORT_REPO_PATH_KEY = "import.target_path";
-    public static final String IMPORT_USE_EXPORT_REPO_ATTRS_KEY = "import.use_export_repo_attrs";
-    public static final String IMPORT_FILES_PATH_KEY = "import.file_source";
-    public static final String IMPORT_LOG_KEY = "import.log";
+    public static final String IMPORT_KEY_USER = "import.user";
+    public static final String IMPORT_KEY_PASSWORD = "import.password";
+    public static final String IMPORT_KEY_DOCBASE = "import.repo";
+    public static final String IMPORT_KEY_REPO_PATH = "import.target_path";
+    public static final String IMPORT_KEY_USE_EXPORT_REPO_ATTRS = "import.use_export_repo_attrs";
+    public static final String IMPORT_KEY_FILES_PATH = "import.file_source";
+    public static final String IMPORT_KEY_LOG = "import.log";
 
     // xml constants
     public static final String XML_HEADER = "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\" ?>";
     public static final String XML_ATTR_NAME = "name";
     public static final String XML_ATTR_TYPE = "type";
-    public static final String XML_REPO_PATH_ELEMENT = "repo_path";
-    public static final String XML_CONTENT_FILE_ELEMENT = "content_file";
-    public static final String XML_PROPERTIES_ELEMENT = "properties";
-    public static final String XML_PROPERTY_ELEMENT = "property";
-    public static final String XML_PERMISSIONS_ELEMENT = "permissions";
-    public static final String XML_PERMISSION_ELEMENT = "permission";
-    public static final String XML_VD_CHILDREN_ELEMENT = "vd_children";
-    public static final String XML_VD_CHILD_ELEMENT = "vd_child";
-    public static final String XML_RENDITIONS_ELEMENT = "renditions";
-    public static final String XML_RENDITION_ELEMENT = "rendition";
+    public static final String XML_ELEMENT_REPO_PATH = "repo_path";
+    public static final String XML_ELEMENT_CONTENT_FILE = "content_file";
+    public static final String XML_ELEMENT_PROPERTIES = "properties";
+    public static final String XML_ELEMENT_PROPERTY = "property";
+    public static final String XML_ELEMENT_PERMISSIONS = "permissions";
+    public static final String XML_ELEMENT_PERMISSION = "permission";
+    public static final String XML_ELEMENT_VD_CHILDREN = "vd_children";
+    public static final String XML_ELEMENT_VD_CHILD = "vd_child";
+    public static final String XML_ELEMENT_RENDITIONS = "renditions";
+    public static final String XML_ELEMENT_RENDITION = "rendition";
     public static final String XML_ATTR_ACCESSOR = "accessor_name";
     public static final String XML_ATTR_ACCESSOR_PERMIT = "accessor_permit";
     public static final String XML_ATTR_ACCESSOR_XPERMIT = "accessor_x_permit";
@@ -126,8 +121,8 @@ public class Utils {
     public static final String XML_ATTR_CUSTOM = "custom";
     public static final String XML_TYPE_ELEMENT = "type";
     public static final String XML_ATTR_SUPER_TYPE = "super_type";
-    public static final String XML_ATTRIBUTES_ELEMENT = "attributes";
-    public static final String XML_ATTRIBUTE_ELEMENT = "attribute";
+    public static final String XML_ELEMENT_ATTRIBUTES = "attributes";
+    public static final String XML_ELEMENT_ATTRIBUTE = "attribute";
     public static final String XML_ATTR_SIZE = "size";
     public static final String XML_ATTR_REPEATING = "repeating";    
     public static final String XML_ATTR_DOMAIN = "domain";
@@ -135,13 +130,13 @@ public class Utils {
     public static final String XML_ATTR_CLASS = "class";
     
     // xml templates (write strings)
-    public static final String XML_PROPERTIES_TEMPLATE = "<" + XML_PROPERTIES_ELEMENT + ">\n%s</" + XML_PROPERTIES_ELEMENT + ">";
-    public static final String XML_REPO_PATH_TEMPLATE = "<" + XML_REPO_PATH_ELEMENT + ">%s</" + XML_REPO_PATH_ELEMENT + ">";
-    public static final String XML_CONTENT_FILE_TEMPLATE = "<" + XML_CONTENT_FILE_ELEMENT + ">%s</" + XML_CONTENT_FILE_ELEMENT + ">";
-    public static final String XML_PERMISSIONS_TEMPLATE = "<" + XML_PERMISSIONS_ELEMENT + ">\n%s</" + XML_PERMISSIONS_ELEMENT + ">";
-    public static final String XML_VD_CHILDREN_TEMPLATE = "<" + XML_VD_CHILDREN_ELEMENT + ">\n%s</" + XML_VD_CHILDREN_ELEMENT + ">";
-    public static final String XML_RENDITIONS_TEMPLATE = "<" + XML_RENDITIONS_ELEMENT + ">\n%s</" + XML_RENDITIONS_ELEMENT + ">";
-    public static final String XML_OBJECT_OPEN_TEMPLATE = "<object " + ATTR_OBJ_ID + "=\"%s\" " + ATTR_OBJ_TYPE + "=\"%s\" content=\"%s\" virtdoc=\"%s\">";
+    public static final String XML_TEMPLATE_PROPERTIES = "<" + XML_ELEMENT_PROPERTIES + ">\n%s</" + XML_ELEMENT_PROPERTIES + ">";
+    public static final String XML_TEMPLATE_REPO_PATH = "<" + XML_ELEMENT_REPO_PATH + ">%s</" + XML_ELEMENT_REPO_PATH + ">";
+    public static final String XML_TEMPLATE_CONTENT_FILE = "<" + XML_ELEMENT_CONTENT_FILE + ">%s</" + XML_ELEMENT_CONTENT_FILE + ">";
+    public static final String XML_TEMPLATE_PERMISSIONS = "<" + XML_ELEMENT_PERMISSIONS + ">\n%s</" + XML_ELEMENT_PERMISSIONS + ">";
+    public static final String XML_TEMPLATE_VD_CHILDREN = "<" + XML_ELEMENT_VD_CHILDREN + ">\n%s</" + XML_ELEMENT_VD_CHILDREN + ">";
+    public static final String XML_TEMPLATE_RENDITIONS = "<" + XML_ELEMENT_RENDITIONS + ">\n%s</" + XML_ELEMENT_RENDITIONS + ">";
+    public static final String XML_TEMPLATE_OBJECT_OPEN = "<object " + OBJ_ATTR_ID + "=\"%s\" " + OBJ_ATTR_TYPE + "=\"%s\" content=\"%s\" virtdoc=\"%s\">";
 
     
     public static boolean loadConfig(Class thisClass, String propFilePath) throws Exception {
@@ -196,13 +191,13 @@ public class Utils {
 
         try {
             if (op.equalsIgnoreCase(OP_EXPORT)) {
-                password = getConfigProperty(Utils.EXPORT_PASSWORD_KEY);
+                password = getConfigProperty(Utils.EXPORT_KEY_PASSWORD);
                 propertyFile = EXPORT_PROPERTY_FILE;
-                key = EXPORT_PASSWORD_KEY;
+                key = EXPORT_KEY_PASSWORD;
             } else {
-                password = getConfigProperty(Utils.IMPORT_PASSWORD_KEY);
+                password = getConfigProperty(Utils.IMPORT_KEY_PASSWORD);
                 propertyFile = IMPORT_PROPERTY_FILE;
-                key = IMPORT_PASSWORD_KEY;
+                key = IMPORT_KEY_PASSWORD;
             }
 
             // if password not encrypted in property file, encrypt it and save
@@ -423,12 +418,13 @@ public class Utils {
     public static String dumpProperties(boolean showPW) {
         StringBuilder out = new StringBuilder();
 
-        Set s = m_configProperties.keySet();
-        Iterator i = s.iterator();
-        while (i.hasNext()) {
-            String k = (String) i.next();
+//        Set s = m_configProperties.keySet();
+//        Iterator i = s.iterator();
+//        while (i.hasNext()) {
+        for (String k : m_configProperties.stringPropertyNames()) {
+//            String k = (String) i.next();
             String v = getConfigProperty(k);
-            if ((k.equalsIgnoreCase(EXPORT_PASSWORD_KEY) || (k.equalsIgnoreCase(IMPORT_PASSWORD_KEY))
+            if ((k.equalsIgnoreCase(EXPORT_KEY_PASSWORD) || (k.equalsIgnoreCase(IMPORT_KEY_PASSWORD))
                     && !showPW)) {
                 v = "********";
             }
@@ -437,7 +433,6 @@ public class Utils {
         return out.toString();
     }
 
-    
     // if a type on the OMIT list, ignore it
     public static boolean omitTypes(String obj_type) {
 
@@ -448,7 +443,6 @@ public class Utils {
         }
         return false;
     }
-    
     
     // if attr on the SKIP list, ignore it
     public static boolean skipAttrs(String attr) {

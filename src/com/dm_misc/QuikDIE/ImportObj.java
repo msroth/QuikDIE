@@ -61,26 +61,26 @@ public class ImportObj {
 			readMetadataFile();
 				
 			// check that obj type exists -- custom types should have already been created
-			if (!Utils.checkTypeExists(getImportObjProperty(Utils.ATTR_OBJ_TYPE), m_session)) {
-				setErrorMsg("type " + getImportObjProperty(Utils.ATTR_OBJ_TYPE) + " does not exist in target Docbase");
-				throw new Exception ("type " + getImportObjProperty(Utils.ATTR_OBJ_TYPE) + " does not exist in target Docbase");
+			if (!Utils.checkTypeExists(getImportObjProperty(Utils.OBJ_ATTR_TYPE), m_session)) {
+				setErrorMsg("type " + getImportObjProperty(Utils.OBJ_ATTR_TYPE) + " does not exist in target Docbase");
+				throw new Exception ("type " + getImportObjProperty(Utils.OBJ_ATTR_TYPE) + " does not exist in target Docbase");
 			}
 
 			// check that ACL exits -- ACLs should have already been created
-			if ((getImportObjProperty(Utils.ATTR_OBJ_ACL_DOMAIN) != "") || (getImportObjProperty(Utils.ATTR_OBJ_ACL_NAME) != "")) {
-				if (!Utils.checkACLExists(getImportObjProperty(Utils.ATTR_OBJ_ACL_DOMAIN), getImportObjProperty(Utils.ATTR_OBJ_ACL_NAME), session)) {
-					setErrorMsg("acl " + getImportObjProperty(Utils.ATTR_OBJ_ACL_DOMAIN) + ":" + getImportObjProperty(Utils.ATTR_OBJ_ACL_NAME) + " does not exist in target Docbase");
-					throw new Exception ("acl " + getImportObjProperty(Utils.ATTR_OBJ_ACL_DOMAIN) + ":" + getImportObjProperty(Utils.ATTR_OBJ_ACL_NAME) + " does not exist in target Docbase");
+			if ((getImportObjProperty(Utils.OBJ_ATTR_ACL_DOMAIN) != "") || (getImportObjProperty(Utils.OBJ_ATTR_ACL_NAME) != "")) {
+				if (!Utils.checkACLExists(getImportObjProperty(Utils.OBJ_ATTR_ACL_DOMAIN), getImportObjProperty(Utils.OBJ_ATTR_ACL_NAME), session)) {
+					setErrorMsg("acl " + getImportObjProperty(Utils.OBJ_ATTR_ACL_DOMAIN) + ":" + getImportObjProperty(Utils.OBJ_ATTR_ACL_NAME) + " does not exist in target Docbase");
+					throw new Exception ("acl " + getImportObjProperty(Utils.OBJ_ATTR_ACL_DOMAIN) + ":" + getImportObjProperty(Utils.OBJ_ATTR_ACL_NAME) + " does not exist in target Docbase");
 				}
 			}
 			
 			// create object
-			m_sObj = (IDfSysObject) session.newObject(getImportObjProperty(Utils.ATTR_OBJ_TYPE));
+			m_sObj = (IDfSysObject) session.newObject(getImportObjProperty(Utils.OBJ_ATTR_TYPE));
 			if (m_sObj != null)
 				m_objId = m_sObj.getObjectId().toString();
 			else {
-				setErrorMsg("could not create " + getImportObjProperty(Utils.ATTR_OBJ_TYPE) + " object for " + m_contentFile.getAbsolutePath());
-				throw new Exception ("could not create " + getImportObjProperty(Utils.ATTR_OBJ_TYPE) + " object for " + m_contentFile.getAbsolutePath());
+				setErrorMsg("could not create " + getImportObjProperty(Utils.OBJ_ATTR_TYPE) + " object for " + m_contentFile.getAbsolutePath());
+				throw new Exception ("could not create " + getImportObjProperty(Utils.OBJ_ATTR_TYPE) + " object for " + m_contentFile.getAbsolutePath());
 			}
 			
 			// set attrs on new repo object
@@ -97,12 +97,11 @@ public class ImportObj {
 				m_contentFile = findContentFile();
 				
 				if (m_contentFile != null) {
-					m_sObj.setContentType(getImportObjProperty(Utils.ATTR_OBJ_CONTENT_TYPE));
+					m_sObj.setContentType(getImportObjProperty(Utils.OBJ_ATTR_CONTENT_TYPE));
 					m_sObj.setFile(m_contentFile.getAbsolutePath());
 				}
 				m_sObj.save();
 			}
-			
 			
 			m_state = true;
 
@@ -117,8 +116,8 @@ public class ImportObj {
 		File file = null;
 
 
-		String path = Utils.getConfigProperty(Utils.IMPORT_FILES_PATH_KEY);
-		String filename = path + "/" + getImportObjProperty(Utils.XML_CONTENT_FILE_ELEMENT);
+		String path = Utils.getConfigProperty(Utils.IMPORT_KEY_FILES_PATH);
+		String filename = path + "/" + getImportObjProperty(Utils.XML_ELEMENT_CONTENT_FILE);
 		//System.out.println("\tcontent file is: " + filename);
 		file = new File(filename);
 		if (file.exists())
@@ -142,16 +141,16 @@ public class ImportObj {
 			Element root = Doc.getRootElement();
 
 			// get obj id
-			setImportObjProperty(Utils.ATTR_OBJ_ID, root.getAttributeValue(Utils.ATTR_OBJ_ID));
+			setImportObjProperty(Utils.OBJ_ATTR_ID, root.getAttributeValue(Utils.OBJ_ATTR_ID));
 			
 			// get obj type
-			setImportObjProperty(Utils.ATTR_OBJ_TYPE, root.getAttributeValue(Utils.ATTR_OBJ_TYPE));
+			setImportObjProperty(Utils.OBJ_ATTR_TYPE, root.getAttributeValue(Utils.OBJ_ATTR_TYPE));
 						
 			// get has content value
-			setImportObjProperty(Utils.ATTR_OBJ_HAS_CONTENT, root.getAttributeValue(Utils.ATTR_OBJ_HAS_CONTENT));
+			setImportObjProperty(Utils.OBJ_ATTR_HAS_CONTENT, root.getAttributeValue(Utils.OBJ_ATTR_HAS_CONTENT));
 
 			// get is_virtdoc
-			setImportObjProperty(Utils.ATTR_OBJ_VIRTUAL_DOC, root.getAttributeValue(Utils.ATTR_OBJ_VIRTUAL_DOC));
+			setImportObjProperty(Utils.OBJ_ATTR_VIRTUAL_DOC, root.getAttributeValue(Utils.OBJ_ATTR_VIRTUAL_DOC));
 			
 			// loop over child elements
 			List<Element> xml_elements = root.getChildren();
@@ -159,17 +158,17 @@ public class ImportObj {
 				Element element = xml_elements.get(i);
 
 				// get repo_path
-				if (element.getName().equalsIgnoreCase(Utils.XML_REPO_PATH_ELEMENT)) {
-					setImportObjProperty(Utils.XML_REPO_PATH_ELEMENT, element.getValue());
+				if (element.getName().equalsIgnoreCase(Utils.XML_ELEMENT_REPO_PATH)) {
+					setImportObjProperty(Utils.XML_ELEMENT_REPO_PATH, element.getValue());
 				}
 
 				// get content file
-				if (element.getName().equalsIgnoreCase(Utils.XML_CONTENT_FILE_ELEMENT)) {
-					setImportObjProperty(Utils.XML_CONTENT_FILE_ELEMENT, element.getValue());
+				if (element.getName().equalsIgnoreCase(Utils.XML_ELEMENT_CONTENT_FILE)) {
+					setImportObjProperty(Utils.XML_ELEMENT_CONTENT_FILE, element.getValue());
 				}
 
 				// loop over all properties
-				if (element.getName().equalsIgnoreCase(Utils.XML_PROPERTIES_ELEMENT)) {
+				if (element.getName().equalsIgnoreCase(Utils.XML_ELEMENT_PROPERTIES)) {
 					List<Element> properties = element.getChildren();
 					for(int j=0 ; j < properties.size(); j++) {
 						
@@ -179,9 +178,9 @@ public class ImportObj {
 						String value = property.getValue();
 						
 						// filter out system generated acls.
-						if (attr.equalsIgnoreCase(Utils.ATTR_OBJ_ACL_NAME) && value.startsWith("dm_")) {
-							setImportObjProperty(Utils.ATTR_OBJ_ACL_NAME,"");
-							setImportObjProperty(Utils.ATTR_OBJ_ACL_DOMAIN,"");
+						if (attr.equalsIgnoreCase(Utils.OBJ_ATTR_ACL_NAME) && value.startsWith("dm_")) {
+							setImportObjProperty(Utils.OBJ_ATTR_ACL_NAME,"");
+							setImportObjProperty(Utils.OBJ_ATTR_ACL_DOMAIN,"");
 						} else {
 							// save the properties to the object
 							setImportObjProperty(attr,value);
@@ -193,7 +192,7 @@ public class ImportObj {
 						} else {
 							if (!Utils.skipAttrs(attr)) {
 								// keep acl_name out if it is blank
-								if (getImportObjProperty(Utils.ATTR_OBJ_ACL_NAME) != "") {
+								if (getImportObjProperty(Utils.OBJ_ATTR_ACL_NAME) != "") {
 									m_baseAttrs.add(attr);
 								}
 							}
@@ -202,7 +201,7 @@ public class ImportObj {
 				}
 
 				// loop over permissions
-				if (element.getName().equalsIgnoreCase(Utils.XML_PERMISSIONS_ELEMENT)) {
+				if (element.getName().equalsIgnoreCase(Utils.XML_ELEMENT_PERMISSIONS)) {
 					List<Element> permissions = element.getChildren();
 					for(int j=0 ; j < permissions.size(); j++) {
 						
@@ -216,7 +215,7 @@ public class ImportObj {
 				}
 				
 				// loop over vd children
-				if (element.getName().equalsIgnoreCase(Utils.XML_VD_CHILDREN_ELEMENT)) {
+				if (element.getName().equalsIgnoreCase(Utils.XML_ELEMENT_VD_CHILDREN)) {
 					List<Element> vd_children = element.getChildren();
 					for(int j=0 ; j < vd_children.size(); j++) {
 						
@@ -228,7 +227,7 @@ public class ImportObj {
 				}
 				
 				// loop over renditions
-				if (element.getName().equalsIgnoreCase(Utils.XML_RENDITIONS_ELEMENT)) {
+				if (element.getName().equalsIgnoreCase(Utils.XML_ELEMENT_RENDITIONS)) {
 					List<Element> renditions = element.getChildren();
 					for(int j=0 ; j < renditions.size(); j++) {
 						
@@ -262,7 +261,7 @@ public class ImportObj {
 		
 		
 		// set permissions if no acl
-		if (getImportObjProperty(Utils.ATTR_OBJ_ACL_NAME).isBlank()) {
+		if (getImportObjProperty(Utils.OBJ_ATTR_ACL_NAME).isBlank()) {
 
 			Set<String> keys = m_importObjPermissions.stringPropertyNames();
 			for (String key : keys) {
@@ -277,9 +276,9 @@ public class ImportObj {
 			}
 		} else {
 			// check that acl exists - it should
-			if (Utils.checkACLExists(getImportObjProperty(Utils.ATTR_OBJ_ACL_DOMAIN), getImportObjProperty(Utils.ATTR_OBJ_ACL_NAME), m_session)) {
-				m_sObj.setString(Utils.ATTR_OBJ_ACL_DOMAIN, getImportObjProperty(Utils.ATTR_OBJ_ACL_DOMAIN));
-				m_sObj.setString(Utils.ATTR_OBJ_ACL_NAME, getImportObjProperty(Utils.ATTR_OBJ_ACL_NAME));
+			if (Utils.checkACLExists(getImportObjProperty(Utils.OBJ_ATTR_ACL_DOMAIN), getImportObjProperty(Utils.OBJ_ATTR_ACL_NAME), m_session)) {
+				m_sObj.setString(Utils.OBJ_ATTR_ACL_DOMAIN, getImportObjProperty(Utils.OBJ_ATTR_ACL_DOMAIN));
+				m_sObj.setString(Utils.OBJ_ATTR_ACL_NAME, getImportObjProperty(Utils.OBJ_ATTR_ACL_NAME));
 			} else {
 				// noop - just create a system ACL
 			}
@@ -291,7 +290,7 @@ public class ImportObj {
 
 	private void linkObj() throws Exception {
 		
-		String path = Utils.getConfigProperty(Utils.IMPORT_REPO_PATH_KEY) + getImportObjProperty(Utils.XML_REPO_PATH_ELEMENT);
+		String path = Utils.getConfigProperty(Utils.IMPORT_KEY_REPO_PATH) + getImportObjProperty(Utils.XML_ELEMENT_REPO_PATH);
 		
 		// validate path exists (or create it)
 		Utils.validateRepoPath(path, m_session, true);
@@ -374,26 +373,26 @@ public class ImportObj {
 			return null;
 	}
 	
-	private String getImportObjPermissions(String key) {
-		if (m_importObjPermissions.containsKey(key))
-			return m_importObjPermissions.getProperty(key);
-		else
-			return null;
-	}
-	
-	private String getImportObjVDChildren(String key) {
-		if (m_importObjVDChildren.containsKey(key))
-			return m_importObjVDChildren.getProperty(key);
-		else
-			return null;
-	}
-	
-	private String getImportObjRenditions(String key) {
-		if (m_importObjRenditions.containsKey(key))
-			return m_importObjRenditions.getProperty(key);
-		else
-			return null;
-	}
+//	private String getImportObjPermissions(String key) {
+//		if (m_importObjPermissions.containsKey(key))
+//			return m_importObjPermissions.getProperty(key);
+//		else
+//			return null;
+//	}
+//	
+//	private String getImportObjVDChildren(String key) {
+//		if (m_importObjVDChildren.containsKey(key))
+//			return m_importObjVDChildren.getProperty(key);
+//		else
+//			return null;
+//	}
+//	
+//	private String getImportObjRenditions(String key) {
+//		if (m_importObjRenditions.containsKey(key))
+//			return m_importObjRenditions.getProperty(key);
+//		else
+//			return null;
+//	}
 
 	private void setImportObjProperty(String key, String value) {
 		m_importObjProps.setProperty(key, value);
@@ -424,7 +423,7 @@ public class ImportObj {
 	}
 
 	public boolean hasContent() {
-		return Boolean.valueOf(getImportObjProperty(Utils.ATTR_OBJ_HAS_CONTENT));
+		return Boolean.valueOf(getImportObjProperty(Utils.OBJ_ATTR_HAS_CONTENT));
 	}
 
 	public String getObjectId() {
@@ -432,7 +431,7 @@ public class ImportObj {
 	}
 
 	public String getOrigObjId() {
-		return getImportObjProperty(Utils.ATTR_OBJ_ID);
+		return getImportObjProperty(Utils.OBJ_ATTR_ID);
 	}
 	
 	public String getImportFileName() {
